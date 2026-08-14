@@ -2,10 +2,17 @@ import { Document } from '../domain/document';
 import { DocumentRepository } from '../domain/documentRepository';
 import { parseDocuments } from './parseDocuments';
 
+/**
+ * Long enough for a slow mobile connection, short enough that the user is not
+ * left staring at a spinner when the server never answers at all.
+ */
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 interface HttpDocumentRepositoryConfig {
   baseUrl: string;
   /** Injected so tests can drive the adapter without touching the network. */
   fetch?: typeof globalThis.fetch;
+  timeoutMs?: number;
 }
 
 /**
@@ -18,10 +25,15 @@ interface HttpDocumentRepositoryConfig {
 export function createHttpDocumentRepository({
   baseUrl,
   fetch = globalThis.fetch,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
 }: HttpDocumentRepositoryConfig): DocumentRepository {
   return {
     async list(): Promise<Document[]> {
-      const response = await fetch(`${baseUrl}/documents`);
+      const response = await fetchWithin(
+        timeoutMs,
+        fetch,
+        `${baseUrl}/documents`,
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -40,6 +52,34 @@ export function createHttpDocumentRepository({
       return documents;
     },
   };
+}
+
+/**
+ * A request with no deadline is a spinner with no end: mobile connections drop
+ * silently and the socket can stay open long past the point the user cares.
+ */
+async function fetchWithin(
+  timeoutMs: number,
+  fetch: typeof globalThis.fetch,
+  url: string,
+): Promise<Response> {
+  const controller = new AbortController();
+  const countdown = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (error) {
+    // Any failure after our own abort is that abort, not a network problem.
+    if (controller.signal.aborted) {
+      throw new Error(
+        `The document server did not answer within ${timeoutMs}ms`,
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(countdown);
+  }
 }
 
 async function readJson(response: Response): Promise<unknown> {

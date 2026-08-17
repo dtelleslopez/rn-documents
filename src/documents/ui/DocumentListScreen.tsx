@@ -1,18 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { Document } from '../domain/document';
+import { Document, DocumentDraft } from '../domain/document';
+import { AddDocumentSheet } from './AddDocumentSheet';
+import { useDocumentsDependencies } from './documentsContext';
+import { useCreateDocument } from './useCreateDocument';
 import { useDocuments } from './useDocuments';
 
 export function DocumentListScreen() {
-  const { state } = useDocuments();
+  const { state, refresh } = useDocuments();
+  const { create } = useCreateDocument();
+  const { pickFile } = useDocumentsDependencies();
+  const [adding, setAdding] = useState(false);
 
+  async function add(draft: DocumentDraft) {
+    await create(draft);
+    setAdding(false);
+    refresh();
+  }
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.content}>
+        <Documents state={state} />
+      </View>
+
+      <View style={styles.footer}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add document"
+          onPress={() => setAdding(true)}
+          style={styles.addButton}
+        >
+          <Text style={styles.addButtonText}>+ Add document</Text>
+        </Pressable>
+      </View>
+
+      <AddDocumentSheet
+        visible={adding}
+        onSubmit={add}
+        onDismiss={() => setAdding(false)}
+        pickFile={pickFile}
+      />
+    </View>
+  );
+}
+
+function Documents({ state }: { state: ReturnType<typeof useDocuments>['state'] }) {
   if (state.status === 'loading') {
     return (
       <Centered>
@@ -66,6 +107,12 @@ function Centered({ children }: { children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+  },
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -97,5 +144,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     textAlign: 'center',
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: '#eceff3',
+    padding: 16,
+  },
+  addButton: {
+    backgroundColor: '#3b6df6',
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

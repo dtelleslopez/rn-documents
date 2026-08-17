@@ -1,16 +1,38 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
 import { DocumentRepository } from '../domain/documentRepository';
+import { createCompositeDocumentRepository } from '../infrastructure/compositeDocumentRepository';
+import { createInMemoryDocumentStore } from '../infrastructure/inMemoryDocumentStore';
 import { aDocument } from '../testing/documentBuilder';
+import { testDependencies } from '../testing/testDependencies';
 import { DocumentListScreen } from './DocumentListScreen';
-import { DocumentRepositoryProvider } from './documentRepositoryContext';
+import { DocumentsProvider } from './documentsContext';
 
-function renderScreen(repository: DocumentRepository) {
+// Wired like production: the screen reads through the composite, so documents
+// created locally have to surface without the server knowing about them.
+function renderScreen(remote: DocumentRepository) {
+  const store = createInMemoryDocumentStore();
+  const dependencies = testDependencies({
+    store,
+    repository: createCompositeDocumentRepository([remote, store]),
+  });
+
   return render(
-    <DocumentRepositoryProvider repository={repository}>
+    <DocumentsProvider dependencies={dependencies}>
       <DocumentListScreen />
-    </DocumentRepositoryProvider>,
+    </DocumentsProvider>,
+  );
+}
+
+// For the states the screen must render, driven straight from one repository.
+// Going through the composite would mask a failure, since the local store keeps
+// answering and the composite degrades to a partial result on purpose.
+function renderScreenReadingFrom(repository: DocumentRepository) {
+  return render(
+    <DocumentsProvider dependencies={testDependencies({ repository })}>
+      <DocumentListScreen />
+    </DocumentsProvider>,
   );
 }
 
@@ -59,7 +81,7 @@ describe('DocumentListScreen', () => {
   });
 
   it('explains itself when the documents cannot be loaded', async () => {
-    await renderScreen({
+    await renderScreenReadingFrom({
       list: async () => {
         throw new Error('The document server answered with status 500');
       },
@@ -75,5 +97,42 @@ describe('DocumentListScreen', () => {
     await renderScreen({ list: async () => [] });
 
     expect(await screen.findByText('There are no documents yet')).toBeTruthy();
+  });
+});
+
+describe('DocumentListScreen creation', () => {
+  it('offers to add a document even while the list is failing', async () => {
+    await renderScreenReadingFrom({
+      list: async () => {
+        throw new Error('the server is down');
+      },
+    });
+    await screen.findByText('Could not load the documents');
+
+    expect(screen.getByRole('button', { name: 'Add document' })).toBeTruthy();
+  });
+
+  it('shows the created document in the list without a server round trip', async () => {
+    await renderScreen({ list: async () => [] });
+    await screen.findByText('There are no documents yet');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'My report');
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+
+    expect(await screen.findByText('My report')).toBeTruthy();
+  });
+
+  it('closes the sheet once the document has been created', async () => {
+    await renderScreen({ list: async () => [] });
+    await screen.findByText('There are no documents yet');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'My report');
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+
+    await screen.findByText('My report');
+
+    expect(screen.queryByText('Document information')).toBeNull();
   });
 });

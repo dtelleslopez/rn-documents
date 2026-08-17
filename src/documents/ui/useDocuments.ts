@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { listDocuments } from '../application/listDocuments';
 import { Document } from '../domain/document';
-import { useDocumentRepository } from './documentRepositoryContext';
+import { useDocumentsDependencies } from './documentsContext';
 
 export type DocumentsState =
   | { status: 'loading' }
@@ -15,7 +15,7 @@ interface UseDocumentsResult {
 }
 
 export function useDocuments(): UseDocumentsResult {
-  const repository = useDocumentRepository();
+  const { repository } = useDocumentsDependencies();
   const [state, setState] = useState<DocumentsState>({ status: 'loading' });
 
   // The server sends a fresh random collection every time, so a slow first load

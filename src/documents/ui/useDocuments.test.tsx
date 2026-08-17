@@ -4,7 +4,8 @@ import React, { ReactNode } from 'react';
 import { Document } from '../domain/document';
 import { DocumentRepository } from '../domain/documentRepository';
 import { aDocument } from '../testing/documentBuilder';
-import { DocumentRepositoryProvider } from './documentRepositoryContext';
+import { testDependencies } from '../testing/testDependencies';
+import { DocumentsProvider } from './documentsContext';
 import { useDocuments } from './useDocuments';
 
 function deferred<T>() {
@@ -18,9 +19,9 @@ function deferred<T>() {
 
 function renderUseDocuments(repository: DocumentRepository) {
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <DocumentRepositoryProvider repository={repository}>
+    <DocumentsProvider dependencies={testDependencies({ repository })}>
       {children}
-    </DocumentRepositoryProvider>
+    </DocumentsProvider>
   );
 
   return renderHook(() => useDocuments(), { wrapper });

@@ -2,19 +2,13 @@ import { Contributor, Document } from '../domain/document';
 
 export interface ParsedDocuments {
   documents: Document[];
-  /** How many entries were dropped because they did not describe a document. */
   discarded: number;
 }
 
 /**
- * Anti-corruption layer between the challenge server and the domain.
- *
- * The server speaks Go-flavoured JSON (`PascalCase`, RFC 3339 timestamps) and
- * offers no schema guarantees, so nothing beyond this module is allowed to see
- * its shape. Entries that cannot be turned into a usable document are dropped
- * rather than failing the whole response: one broken record should not leave
- * the user staring at an error screen. The count of dropped entries is
- * reported so the caller can make the loss visible instead of silent.
+ * Unreadable entries are dropped rather than failing the whole response, so one
+ * broken record does not leave the user on an error screen. `discarded` is
+ * reported so the caller can surface the loss instead of swallowing it.
  */
 export function parseDocuments(payload: unknown): ParsedDocuments {
   if (!Array.isArray(payload)) {
@@ -89,7 +83,6 @@ function toStringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter(isNonEmptyString) : [];
 }
 
-/** Returns null for anything JavaScript cannot read as a point in time. */
 function toDate(value: unknown): Date | null {
   if (typeof value !== 'string') {
     return null;

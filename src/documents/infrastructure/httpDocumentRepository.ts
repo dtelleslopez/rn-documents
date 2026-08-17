@@ -2,26 +2,14 @@ import { Document } from '../domain/document';
 import { DocumentRepository } from '../domain/documentRepository';
 import { parseDocuments } from './parseDocuments';
 
-/**
- * Long enough for a slow mobile connection, short enough that the user is not
- * left staring at a spinner when the server never answers at all.
- */
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 interface HttpDocumentRepositoryConfig {
   baseUrl: string;
-  /** Injected so tests can drive the adapter without touching the network. */
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
 }
 
-/**
- * Reads documents from the challenge server over HTTP.
- *
- * Everything the server gets wrong is absorbed here: unexpected statuses,
- * bodies that are not JSON, and records that do not describe a document. The
- * rest of the application only ever sees domain documents or a failed promise.
- */
 export function createHttpDocumentRepository({
   baseUrl,
   fetch = globalThis.fetch,
@@ -54,10 +42,6 @@ export function createHttpDocumentRepository({
   };
 }
 
-/**
- * A request with no deadline is a spinner with no end: mobile connections drop
- * silently and the socket can stay open long past the point the user cares.
- */
 async function fetchWithin(
   timeoutMs: number,
   fetch: typeof globalThis.fetch,

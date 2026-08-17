@@ -9,10 +9,6 @@ interface DocumentRepositoryProviderProps {
   children: ReactNode;
 }
 
-/**
- * Hands the chosen repository implementation to the views, so that no component
- * ever needs to know whether documents come from the network or from the device.
- */
 export function DocumentRepositoryProvider({
   repository,
   children,

@@ -1,9 +1,5 @@
 import { Document } from '../domain/document';
 
-/**
- * Builds a valid document for tests. Override only the fields the test cares
- * about, so each test reads as the single thing it is asserting.
- */
 export function aDocument(overrides: Partial<Document> = {}): Document {
   return {
     id: 'a-document-id',

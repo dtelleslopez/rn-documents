@@ -8,6 +8,8 @@ import {
   View,
 } from 'react-native';
 
+import { NotificationBell } from '../../notifications/ui/NotificationBell';
+import { useUnseenNotifications } from '../../notifications/ui/useUnseenNotifications';
 import { Document, DocumentDraft } from '../domain/document';
 import { AddDocumentSheet } from './AddDocumentSheet';
 import { useDocumentsDependencies } from './documentsContext';
@@ -18,6 +20,7 @@ export function DocumentListScreen() {
   const { state, refresh } = useDocuments();
   const { create } = useCreateDocument();
   const { pickFile } = useDocumentsDependencies();
+  const { count, acknowledge } = useUnseenNotifications();
   const [adding, setAdding] = useState(false);
 
   async function add(draft: DocumentDraft) {
@@ -28,6 +31,11 @@ export function DocumentListScreen() {
 
   return (
     <View style={styles.screen}>
+      <View style={styles.header}>
+        <Text style={styles.heading}>Documents</Text>
+        <NotificationBell count={count} onPress={acknowledge} />
+      </View>
+
       <View style={styles.content}>
         <Documents state={state} />
       </View>
@@ -112,6 +120,17 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  heading: {
+    fontSize: 28,
+    fontWeight: '700',
   },
   centered: {
     flex: 1,

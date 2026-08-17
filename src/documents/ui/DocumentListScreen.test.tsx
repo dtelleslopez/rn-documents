@@ -1,6 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
+import { NotificationSource } from '../../notifications/domain/notificationSource';
+import { aFakeNotificationSource } from '../../notifications/testing/notificationBuilder';
+import { testNotificationsDependencies } from '../../notifications/testing/testNotificationsDependencies';
+import { NotificationsProvider } from '../../notifications/ui/notificationsContext';
 import { DocumentRepository } from '../domain/documentRepository';
 import { createCompositeDocumentRepository } from '../infrastructure/compositeDocumentRepository';
 import { createInMemoryDocumentStore } from '../infrastructure/inMemoryDocumentStore';
@@ -9,19 +13,32 @@ import { testDependencies } from '../testing/testDependencies';
 import { DocumentListScreen } from './DocumentListScreen';
 import { DocumentsProvider } from './documentsContext';
 
-// Wired like production: the screen reads through the composite, so documents
-// created locally have to surface without the server knowing about them.
-function renderScreen(remote: DocumentRepository) {
-  const store = createInMemoryDocumentStore();
-  const dependencies = testDependencies({
-    store,
-    repository: createCompositeDocumentRepository([remote, store]),
-  });
-
+function renderWithProviders(
+  dependencies: ReturnType<typeof testDependencies>,
+  source: NotificationSource = aFakeNotificationSource().source,
+) {
   return render(
     <DocumentsProvider dependencies={dependencies}>
-      <DocumentListScreen />
+      <NotificationsProvider
+        dependencies={testNotificationsDependencies({ source })}
+      >
+        <DocumentListScreen />
+      </NotificationsProvider>
     </DocumentsProvider>,
+  );
+}
+
+// Wired like production: the screen reads through the composite, so documents
+// created locally have to surface without the server knowing about them.
+function renderScreen(remote: DocumentRepository, source?: NotificationSource) {
+  const store = createInMemoryDocumentStore();
+
+  return renderWithProviders(
+    testDependencies({
+      store,
+      repository: createCompositeDocumentRepository([remote, store]),
+    }),
+    source,
   );
 }
 
@@ -29,11 +46,7 @@ function renderScreen(remote: DocumentRepository) {
 // Going through the composite would mask a failure, since the local store keeps
 // answering and the composite degrades to a partial result on purpose.
 function renderScreenReadingFrom(repository: DocumentRepository) {
-  return render(
-    <DocumentsProvider dependencies={testDependencies({ repository })}>
-      <DocumentListScreen />
-    </DocumentsProvider>,
-  );
+  return renderWithProviders(testDependencies({ repository }));
 }
 
 describe('DocumentListScreen', () => {
@@ -100,6 +113,31 @@ describe('DocumentListScreen', () => {
   });
 });
 
+describe('DocumentListScreen notifications', () => {
+  it('shows how many documents other users have created', async () => {
+    const notifications = aFakeNotificationSource();
+    await renderScreen({ list: async () => [] }, notifications.source);
+
+    await act(async () => notifications.emit());
+
+    expect(
+      await screen.findByLabelText('Notifications, 1 unseen'),
+    ).toBeTruthy();
+  });
+
+  it('clears the badge once the user looks at it', async () => {
+    const notifications = aFakeNotificationSource();
+    await renderScreen({ list: async () => [] }, notifications.source);
+
+    await act(async () => notifications.emit());
+    await fireEvent.press(
+      await screen.findByLabelText('Notifications, 1 unseen'),
+    );
+
+    expect(screen.getByLabelText('Notifications, none unseen')).toBeTruthy();
+  });
+});
+
 describe('DocumentListScreen creation', () => {
   it('offers to add a document even while the list is failing', async () => {
     await renderScreenReadingFrom({
@@ -121,6 +159,19 @@ describe('DocumentListScreen creation', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
 
     expect(await screen.findByText('My report')).toBeTruthy();
+  });
+
+  it('leaves the badge alone when the user creates a document', async () => {
+    const notifications = aFakeNotificationSource();
+    await renderScreen({ list: async () => [] }, notifications.source);
+    await screen.findByText('There are no documents yet');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'My report');
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+    await screen.findByText('My report');
+
+    expect(screen.getByLabelText('Notifications, none unseen')).toBeTruthy();
   });
 
   it('closes the sheet once the document has been created', async () => {

@@ -185,6 +185,10 @@ closes the socket, and reopening happens on its own when the app comes back.
 - **Neither does creating a document.** The new document is placed into the list on screen, in
   the position the active order gives it. The reload that used to follow would answer with a
   different random collection, and the whole list would change right after the user added to it.
+- **A partially unreadable answer is logged, not announced.** The parser counts the entries it
+  discards and the adapters log that count as a developer trace. It stays off the screen
+  deliberately: it would name a loss the user can do nothing about, in documents that will never
+  be served again anyway.
 - **Pull to refresh, and an explicit retry.** The gesture is the everyday way back to the server;
   the button is there because a gesture nobody can see is not an escape route when the screen has
   no list to pull.

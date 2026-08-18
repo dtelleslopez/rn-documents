@@ -7,8 +7,9 @@ export interface ParsedDocuments {
 
 /**
  * Unreadable entries are dropped rather than failing the whole response, so one
- * broken record does not leave the user on an error screen. `discarded` is
- * reported so the caller can surface the loss instead of swallowing it.
+ * broken record does not leave the user on an error screen. `discarded` says
+ * how many were lost; the adapters log it as a developer trace, deliberately
+ * not on screen — it would name a loss the user can do nothing about.
  *
  * Takes the entries rather than the raw payload: whether a payload that is not
  * a list at all is an error or a fresh start is the caller's decision.

@@ -26,6 +26,13 @@ export function useDocuments(): UseDocumentsResult {
     const request = latestRequest.current + 1;
     latestRequest.current = request;
 
+    // Retrying after a failure starts the screen over: keeping the old error
+    // up would make the tap look like it did nothing. A refresh over a ready
+    // list keeps the list, since blanking it would punish the gesture.
+    setState((current) =>
+      current.status === 'failed' ? { status: 'loading' } : current,
+    );
+
     try {
       const { documents, incomplete } = await listDocuments(reader);
 

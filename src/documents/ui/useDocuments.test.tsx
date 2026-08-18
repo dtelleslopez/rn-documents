@@ -96,6 +96,44 @@ describe('useDocuments', () => {
     expect(read).toHaveBeenCalledTimes(2);
   });
 
+  it('goes back to loading when retrying after a failure', async () => {
+    let calls = 0;
+    const { result } = await renderUseDocuments({
+      read: () => {
+        calls += 1;
+        return calls === 1
+          ? Promise.reject(new Error('the server is down'))
+          : new Promise(() => {});
+      },
+    });
+    await waitFor(() => expect(result.current.state.status).toBe('failed'));
+
+    await act(async () => {
+      result.current.refresh();
+    });
+
+    expect(result.current.state).toEqual({ status: 'loading' });
+  });
+
+  it('keeps the documents on screen while a refresh is in flight', async () => {
+    let calls = 0;
+    const { result } = await renderUseDocuments({
+      read: () => {
+        calls += 1;
+        return calls === 1
+          ? Promise.resolve({ documents: [aDocument()], incomplete: false })
+          : new Promise<DocumentsReading>(() => {});
+      },
+    });
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+
+    await act(async () => {
+      result.current.refresh();
+    });
+
+    expect(result.current.state.status).toBe('ready');
+  });
+
   it('ignores a slow answer that lost the race against a newer one', async () => {
     const slowFirstLoad = deferred<DocumentsReading>();
     const fastRefresh = deferred<DocumentsReading>();

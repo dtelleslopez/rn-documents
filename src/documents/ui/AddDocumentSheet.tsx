@@ -101,12 +101,16 @@ export function AddDocumentSheet({
       animationType="slide"
       onRequestClose={dismiss}
     >
-      <Pressable style={styles.backdrop} onPress={dismiss} testID="add-document-backdrop">
-        {/* On iOS the keyboard would cover the fields and the submit button;
-            Android already resizes the window on its own. */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
+      {/* On iOS the keyboard would cover the fields and the submit button;
+          Android already resizes the window on its own. The avoider fills the
+          window rather than wrapping the sheet: the sheet's maxHeight needs a
+          parent with a definite height to measure against, and without one it
+          collapses short of the bottom edge. */}
+      <KeyboardAvoidingView
+        style={styles.avoider}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Pressable style={styles.backdrop} onPress={dismiss} testID="add-document-backdrop">
           <Pressable style={styles.sheet}>
             <View style={styles.header}>
               <Text style={styles.heading}>Add document</Text>
@@ -175,8 +179,8 @@ export function AddDocumentSheet({
               </Pressable>
             </View>
           </Pressable>
-        </KeyboardAvoidingView>
-      </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -206,6 +210,9 @@ function Field({ label, value, onChangeText, autoFocus }: FieldProps) {
 }
 
 const styles = StyleSheet.create({
+  avoider: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',

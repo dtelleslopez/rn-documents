@@ -74,7 +74,7 @@ src/
 ├── composition.ts              # composition root: the only place that knows the real world
 ├── documents/
 │   ├── domain/                 # Document, DocumentRepository, DocumentStore
-│   ├── application/            # listDocuments, createDocument
+│   ├── application/            # createDocument
 │   ├── infrastructure/         # HTTP, in-memory and composite adapters, parsing
 │   ├── ui/                     # screen, sheet, context, hooks
 │   └── testing/                # builders and test doubles
@@ -85,8 +85,10 @@ Notifications live in their own feature rather than inside `documents` because t
 neither the repository, nor the store, nor the list: they share the noun, not the state.
 
 Use cases are **plain functions that take their dependencies as arguments**
-(`listDocuments(repository)`), not classes with an `execute()`. Same substitutability, less
-ceremony. The dependencies are built once at module level in `App.tsx` and handed down through a
+(`createDocument(dependencies, draft)`), not classes with an `execute()`. Same
+substitutability, less ceremony. Listing has no use case of its own: it would only forward
+`read()` to the port, and a pass-through earns nothing — the list hook reads the port
+directly, and ordering lives with the screen, which is where the user changes it. The dependencies are built once at module level in `App.tsx` and handed down through a
 context; building them inside the component would change their identity on every render and put
 the fetch hook into a loop.
 

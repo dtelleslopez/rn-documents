@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { listDocuments } from '../application/listDocuments';
 import { Document } from '../domain/document';
 import { useDocumentsDependencies } from './documentsContext';
 
@@ -35,7 +34,7 @@ export function useDocuments(): UseDocumentsResult {
     );
 
     try {
-      const { documents, incomplete } = await listDocuments(reader);
+      const { documents, incomplete } = await reader.read();
 
       if (latestRequest.current === request) {
         setState({ status: 'ready', documents, incomplete });

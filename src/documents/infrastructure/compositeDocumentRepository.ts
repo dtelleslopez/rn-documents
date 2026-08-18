@@ -8,7 +8,8 @@ import { DocumentsReader, DocumentsReading } from '../domain/documentsReader';
  * reading is incomplete so it can say so instead of showing a convincing empty
  * screen. Only a total failure is reported as one.
  *
- * Ordering is left to the caller, since `listDocuments` already owns that rule.
+ * Ordering is left to the caller: how the list is arranged is a choice the
+ * screen makes, and it changes without rereading.
  */
 export function createCompositeDocumentRepository(
   sources: DocumentRepository[],

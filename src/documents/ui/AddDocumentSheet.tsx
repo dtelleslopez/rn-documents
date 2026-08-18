@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useRef, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -100,74 +102,80 @@ export function AddDocumentSheet({
       onRequestClose={dismiss}
     >
       <Pressable style={styles.backdrop} onPress={dismiss} testID="add-document-backdrop">
-        <Pressable style={styles.sheet}>
-          <View style={styles.header}>
-            <Text style={styles.heading}>Add document</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              onPress={dismiss}
-              style={styles.close}
-            >
-              <Text style={styles.closeGlyph}>✕</Text>
-            </Pressable>
-          </View>
+        {/* On iOS the keyboard would cover the fields and the submit button;
+            Android already resizes the window on its own. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <Pressable style={styles.sheet}>
+            <View style={styles.header}>
+              <Text style={styles.heading}>Add document</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                onPress={dismiss}
+                style={styles.close}
+              >
+                <Text style={styles.closeGlyph}>✕</Text>
+              </Pressable>
+            </View>
 
-          <ScrollView contentContainerStyle={styles.body}>
-            <Text style={styles.section}>Document information</Text>
+            <ScrollView contentContainerStyle={styles.body}>
+              <Text style={styles.section}>Document information</Text>
 
-            <Field
-              label="Name"
-              value={title}
-              onChangeText={setTitle}
-              autoFocus
-            />
-            <Field label="Version" value={version} onChangeText={setVersion} />
+              <Field
+                label="Name"
+                value={title}
+                onChangeText={setTitle}
+                autoFocus
+              />
+              <Field label="Version" value={version} onChangeText={setVersion} />
 
-            <Text style={styles.label}>File</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Choose file"
-              onPress={choose}
-              style={styles.chooseFile}
-            >
-              <Ionicons name="document-text-outline" size={18} color="#3b6df6" />
-              <Text style={styles.chooseFileText}>Choose file</Text>
-            </Pressable>
+              <Text style={styles.label}>File</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Choose file"
+                onPress={choose}
+                style={styles.chooseFile}
+              >
+                <Ionicons name="document-text-outline" size={18} color="#3b6df6" />
+                <Text style={styles.chooseFileText}>Choose file</Text>
+              </Pressable>
 
-            {/* Keyed by position because two picked files can share a name. */}
-            {attachments.map((attachment, position) => (
-              <View key={position} style={styles.attachment}>
-                <Text style={styles.attachmentName}>{attachment}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${attachment}`}
-                  onPress={() => removeAttachment(position)}
-                  hitSlop={8}
-                >
-                  <Ionicons name="close" size={16} color="#5f6b7a" />
-                </Pressable>
-              </View>
-            ))}
-          </ScrollView>
+              {/* Keyed by position because two picked files can share a name. */}
+              {attachments.map((attachment, position) => (
+                <View key={position} style={styles.attachment}>
+                  <Text style={styles.attachmentName}>{attachment}</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${attachment}`}
+                    onPress={() => removeAttachment(position)}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="close" size={16} color="#5f6b7a" />
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
 
-          <View style={styles.footer}>
-            {failed && (
-              <Text style={styles.failure}>Could not save the document</Text>
-            )}
+            <View style={styles.footer}>
+              {failed && (
+                <Text style={styles.failure}>Could not save the document</Text>
+              )}
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Submit"
-              accessibilityState={{ disabled: !canSubmit }}
-              disabled={!canSubmit}
-              onPress={submit}
-              style={[styles.submit, !canSubmit && styles.submitDisabled]}
-            >
-              <Text style={styles.submitText}>Submit</Text>
-            </Pressable>
-          </View>
-        </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Submit"
+                accessibilityState={{ disabled: !canSubmit }}
+                disabled={!canSubmit}
+                onPress={submit}
+                style={[styles.submit, !canSubmit && styles.submitDisabled]}
+              >
+                <Text style={styles.submitText}>Submit</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   );

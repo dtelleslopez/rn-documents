@@ -11,7 +11,7 @@ const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const MONTH = 30 * DAY;
-const YEAR = 12 * MONTH;
+const YEAR = 365 * DAY;
 
 describe('relativeTime', () => {
   it('counts seconds until there is a minute to count', () => {
@@ -39,6 +39,7 @@ describe('relativeTime', () => {
   it('counts months until there is a year to count', () => {
     expect(ago(MONTH)).toBe('1 month ago');
     expect(ago(11 * MONTH)).toBe('11 months ago');
+    expect(ago(364 * DAY)).toBe('12 months ago');
   });
 
   it('counts years after that', () => {

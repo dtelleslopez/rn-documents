@@ -131,9 +131,15 @@ export function AddDocumentSheet({
                 label="Name"
                 value={title}
                 onChangeText={setTitle}
+                placeholder="Quarterly report"
                 autoFocus
               />
-              <Field label="Version" value={version} onChangeText={setVersion} />
+              <Field
+                label="Version"
+                value={version}
+                onChangeText={setVersion}
+                placeholder="1.0.0"
+              />
 
               <Text style={styles.label}>File</Text>
               <Pressable
@@ -189,10 +195,11 @@ interface FieldProps {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
+  placeholder: string;
   autoFocus?: boolean;
 }
 
-function Field({ label, value, onChangeText, autoFocus }: FieldProps) {
+function Field({ label, value, onChangeText, placeholder, autoFocus }: FieldProps) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -201,7 +208,7 @@ function Field({ label, value, onChangeText, autoFocus }: FieldProps) {
         value={value}
         onChangeText={onChangeText}
         autoFocus={autoFocus}
-        placeholder="Placeholder"
+        placeholder={placeholder}
         placeholderTextColor="#9aa0a6"
         style={styles.input}
       />

@@ -67,6 +67,26 @@ Tests cover the domain, the use cases, every adapter and the screens. Each one w
 breaking the implementation on purpose and checking that it turned red — a test that passes
 against a broken implementation is worse than no test, because it buys false confidence.
 
+### End-to-end
+
+```bash
+npm run test:e2e  # Maestro flow: load the list, create a document, see its card
+```
+
+One [Maestro](https://maestro.mobile.dev) flow (`e2e/create-document.yaml`) covers what the unit
+tests cannot: the real integration of Metro, Expo Go, the challenge server and the native UI. It
+needs the whole stack up (server, Metro, `adb reverse`, an emulator with Expo Go — see above) and
+Maestro on the `PATH`. Maestro was chosen because it is black-box: it drives whatever is on
+screen through accessibility, so it works against Expo Go as-is and adds no dependency to the
+project. Detox, the usual alternative, requires compiling its native code into the app — a dev
+build — which contradicts the decision to stay on Expo Go. Each run creates a timestamped
+document that persists on the device, so assertions target only what the run itself created;
+asserting on server content would be flaky by design, since every fetch returns a different
+random collection. The flow was validated the same way as the unit tests: a copy with an
+impossible assertion was run to confirm it turns red, and the flow asserts the sheet actually
+closed after submitting — without that, the typed name still visible inside the input would
+make the final assertion pass for the wrong reason.
+
 ## Architecture
 
 The code is organised **by feature, and inside each feature by layer**:
@@ -81,6 +101,7 @@ src/
 │   ├── ui/                     # screen, cards, sheets, context, hooks
 │   └── testing/                # builders and test doubles
 └── notifications/              # same shape: domain, application-less, infrastructure, ui
+e2e/                            # the Maestro flow — outside src/ because it drives the app, not the code
 ```
 
 Notifications live in their own feature rather than inside `documents` because they touch

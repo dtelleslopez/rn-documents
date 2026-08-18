@@ -1,0 +1,27 @@
+# Creates a document through the sheet and verifies it shows up as a card.
+# Runs against Expo Go on the connected emulator; Metro and the challenge
+# server must be up (see README). DOC_NAME must be unique per run, since
+# created documents persist on the device.
+appId: host.exp.exponent
+---
+- openLink: exp://127.0.0.1:8082
+- extendedWaitUntil:
+    visible: Documents
+    timeout: 60000
+# "Sort by" only renders once the list finished loading.
+- extendedWaitUntil:
+    visible: Sort by
+    timeout: 15000
+- tapOn: Add document
+- assertVisible: Document information
+# The placeholders are the only unambiguous handles for the inputs:
+# the "Name"/"Version" labels match both the label text and the field.
+- tapOn: Quarterly report
+- inputText: ${DOC_NAME}
+- tapOn: 1.0.0
+- inputText: "0.1.0"
+- tapOn: Submit
+# The sheet closes on success and the new card appears without refetching.
+- assertNotVisible: Document information
+- assertVisible: ${DOC_NAME}
+- assertVisible: Version 0.1.0

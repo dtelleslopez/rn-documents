@@ -33,7 +33,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "maestro test -e DOC_NAME=\"E2E $(date +%s)\" e2e/create-document.yaml"
   },
   "private": true
 }

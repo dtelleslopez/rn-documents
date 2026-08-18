@@ -440,3 +440,29 @@ describe('DocumentListScreen partial readings', () => {
     expect(screen.queryByText('Could not reach the server')).toBeNull();
   });
 });
+
+describe('DocumentListScreen when a document cannot be stored', () => {
+  it('keeps the sheet open with what the user typed', async () => {
+    const store = createInMemoryDocumentStore();
+    await renderWithProviders(
+      testDependencies({
+        store: {
+          list: store.list,
+          add: async () => {
+            throw new Error('the disk is full');
+          },
+        },
+        reader: createCompositeDocumentRepository([store]),
+      }),
+    );
+
+    await fireEvent.press(screen.getByLabelText('Add document'));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Kitchen notes');
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Submit'));
+    });
+
+    expect(screen.getByText('Could not save the document')).toBeTruthy();
+    expect(screen.getByLabelText('Name').props.value).toBe('Kitchen notes');
+  });
+});

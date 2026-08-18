@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
 import { DocumentDraft } from '../domain/document';
@@ -95,5 +95,26 @@ describe('AddDocumentSheet', () => {
     );
 
     expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('stays open and says so when the document could not be saved', async () => {
+    await render(
+      <AddDocumentSheet
+        visible
+        onSubmit={async () => {
+          throw new Error('the disk is full');
+        }}
+        onDismiss={() => {}}
+        pickFile={async () => null}
+      />,
+    );
+
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Kitchen notes');
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Submit'));
+    });
+
+    expect(screen.getByText('Could not save the document')).toBeTruthy();
+    expect(screen.getByLabelText('Name').props.value).toBe('Kitchen notes');
   });
 });

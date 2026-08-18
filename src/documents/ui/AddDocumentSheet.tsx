@@ -14,7 +14,7 @@ import { DocumentDraft } from '../domain/document';
 
 interface AddDocumentSheetProps {
   visible: boolean;
-  onSubmit: (draft: DocumentDraft) => void;
+  onSubmit: (draft: DocumentDraft) => Promise<void> | void;
   onDismiss: () => void;
   pickFile: () => Promise<string | null>;
 }
@@ -28,6 +28,7 @@ export function AddDocumentSheet({
   const [title, setTitle] = useState('');
   const [version, setVersion] = useState('');
   const [attachments, setAttachments] = useState<string[]>([]);
+  const [failed, setFailed] = useState(false);
 
   const canSubmit = title.trim().length > 0;
 
@@ -35,6 +36,7 @@ export function AddDocumentSheet({
     setTitle('');
     setVersion('');
     setAttachments([]);
+    setFailed(false);
   }
 
   function dismiss() {
@@ -42,9 +44,14 @@ export function AddDocumentSheet({
     onDismiss();
   }
 
-  function submit() {
-    onSubmit({ title, version, attachments });
-    reset();
+  // Kept on failure: clearing would throw away work the app could not store.
+  async function submit() {
+    try {
+      await onSubmit({ title, version, attachments });
+      reset();
+    } catch {
+      setFailed(true);
+    }
   }
 
   async function choose() {
@@ -106,6 +113,10 @@ export function AddDocumentSheet({
           </ScrollView>
 
           <View style={styles.footer}>
+            {failed && (
+              <Text style={styles.failure}>Could not save the document</Text>
+            )}
+
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Submit"
@@ -237,6 +248,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 16,
     alignItems: 'center',
+  },
+  failure: {
+    marginBottom: 12,
+    fontSize: 14,
+    color: '#b42318',
+    textAlign: 'center',
   },
   submitDisabled: {
     backgroundColor: '#b9c8f0',

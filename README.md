@@ -15,7 +15,8 @@ there is nothing to compile: install the dependencies, point it at the server an
   screen says so above the documents it does have — rather than claiming there are none — and
   offers a retry.
 - **Creates documents locally**, from a sheet with name, version and attachments picked
-  from the device. New documents show up in the same list as the server ones.
+  from the device. New documents show up in the same list as the server ones, and they are still
+  there after the app is closed and reopened.
 - **Notifies about documents other users create**, over `ws://…/notifications`. A bell in the
   header carries the number of documents created since you last looked; tapping it clears the
   count. It survives the server going away and coming back without reloading the app.
@@ -54,7 +55,7 @@ restart the bundler, Fast Refresh will not pick it up.
 ## Checks
 
 ```bash
-npm test          # 123 tests, 24 suites (Jest + jest-expo + React Native Testing Library)
+npm test          # 136 tests, 26 suites (Jest + jest-expo + React Native Testing Library)
 npm run typecheck # tsc --noEmit
 npm run lint      # expo lint
 ```
@@ -94,7 +95,10 @@ the fetch hook into a loop.
 
 - `httpDocumentRepository` — talks to the server, with a 10s timeout and a parser that keeps the
   documents it can read and discards the ones it cannot instead of failing the whole response.
-- `inMemoryDocumentStore` — the documents you create.
+- `storedDocumentStore` — the documents you create, kept in a JSON file so they survive a
+  restart. It reads that file once and writes it whenever a document is added, and it writes
+  **before** it remembers: a document held in memory that never reached the disk would promise a
+  permanence the app cannot deliver. `inMemoryDocumentStore` is still there for tests.
 
 `compositeDocumentRepository` reads both at once, and it deliberately implements a **different**
 port, `DocumentsReader`, because reading several sources can go half right in a way a single one
@@ -147,9 +151,14 @@ closes the socket, and reopening happens on its own when the app comes back.
   server needs: timeout, tolerant parsing, partial failure, stale-response guard.
 - **No global state library.** The shared state is a flat list of at most 21 items and a counter.
   Context plus hooks is enough, and adding Zustand would only move the same state somewhere else.
-- **No MMKV.** `react-native-mmkv` v3 is built on Nitro Modules and does not run in Expo Go, so
-  it would force a development build on a project whose persistence needs amount to a handful of
-  documents. Its speed would be a premature optimisation.
+- **`expo-file-system` for persistence, not MMKV or AsyncStorage.** `react-native-mmkv` v3 is
+  built on Nitro Modules and does not run in Expo Go, so it would force a development build for
+  a speed nobody here can measure. AsyncStorage would work, but it is a third-party package that
+  still leaves the JSON to us, so it buys a few lines. `expo-file-system` is the same family as
+  the Expo modules already in use, and what it does not give us — the stored shape, and the
+  tolerance for a half-written file — is exactly the part worth writing and testing ourselves.
+- **The stored file uses the shape the server answers with**, so `parseDocuments` reads both and
+  there is one definition of what makes a document readable, rather than two to keep in step.
 - **No tactical DDD.** There is not a single invariant to protect: a document is an immutable bag
   of data. Value objects and aggregates here would be cost without benefit. The one rule that
   does exist — a document needs a title — lives in the factory function that builds it.
@@ -158,6 +167,10 @@ closes the socket, and reopening happens on its own when the app comes back.
 - **No notification panel, no refresh on notification, no navigation to the notified document.**
   The mockup defines none of them, and the last two would be a visual lie: refreshing returns a
   completely different random list, and the announced document id does not exist in the API.
+- **Only the documents created here are persisted**, never the server's answers. Every request
+  returns a different random collection, so a cached copy would be a snapshot of documents that
+  will never come back — presented as "your documents". Offline you see what is yours, plus the
+  warning that the server could not be reached.
 - **Sorting never refetches.** Picking an order rearranges the documents already on screen. Going
   back to the server would answer with a different random collection, so the list would look
   shuffled rather than sorted — the user would have asked to sort and got new data instead.

@@ -1,9 +1,10 @@
 import { randomUUID } from 'expo-crypto';
 
 import { createCompositeDocumentRepository } from './documents/infrastructure/compositeDocumentRepository';
+import { createFileTextStorage } from './documents/infrastructure/fileTextStorage';
 import { createHttpDocumentRepository } from './documents/infrastructure/httpDocumentRepository';
-import { createInMemoryDocumentStore } from './documents/infrastructure/inMemoryDocumentStore';
 import { pickDocumentFileName } from './documents/infrastructure/pickDocumentFileName';
+import { createStoredDocumentStore } from './documents/infrastructure/storedDocumentStore';
 import { DocumentsDependencies } from './documents/ui/documentsContext';
 import { createReconnectingNotificationSource } from './notifications/infrastructure/reconnectingNotificationSource';
 import { subscribeToAppState } from './notifications/infrastructure/subscribeToAppState';
@@ -19,7 +20,7 @@ function apiBaseUrl(): string {
 }
 
 export function createDocumentsDependencies(): DocumentsDependencies {
-  const store = createInMemoryDocumentStore();
+  const store = createStoredDocumentStore(createFileTextStorage());
   const server = createHttpDocumentRepository({ baseUrl: apiBaseUrl() });
 
   return {

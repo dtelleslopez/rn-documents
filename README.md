@@ -56,7 +56,7 @@ restart the bundler, Fast Refresh will not pick it up.
 ## Checks
 
 ```bash
-npm test          # 156 tests, 26 suites (Jest + jest-expo + React Native Testing Library)
+npm test          # 160 tests, 26 suites (Jest + jest-expo + React Native Testing Library)
 npm run typecheck # tsc --noEmit
 npm run lint      # expo lint
 ```
@@ -150,8 +150,8 @@ closes the socket, and reopening happens on its own when the app comes back.
 
 - **No React Query.** One endpoint, no parameters, mutations that never reach the server (so
   nothing to invalidate) and a different random response on every call, so caching it would mean
-  nothing. The data layer is 252 lines written by hand, and it does exactly what this
-  server needs: timeout, tolerant parsing, partial failure, stale-response guard.
+  nothing. The data layer is a few hundred lines written by hand, and it does exactly what
+  this server needs: timeout, tolerant parsing, partial failure, stale-response guard.
 - **No global state library.** The shared state is a flat list of at most 21 items and a counter.
   Context plus hooks is enough, and adding Zustand would only move the same state somewhere else.
 - **`expo-file-system` for persistence, not MMKV or AsyncStorage.** `react-native-mmkv` v3 is

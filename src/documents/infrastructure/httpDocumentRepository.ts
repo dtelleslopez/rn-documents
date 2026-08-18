@@ -29,7 +29,17 @@ export function createHttpDocumentRepository({
         );
       }
 
-      const { documents, discarded } = parseDocuments(await readJson(response));
+      const payload = await readJson(response);
+
+      if (!Array.isArray(payload)) {
+        // Reading it as an empty list would put a convincing "no documents
+        // yet" on screen when the server is misbehaving.
+        throw new Error(
+          'The document server answered with something that is not a list of documents',
+        );
+      }
+
+      const { documents, discarded } = parseDocuments(payload);
 
       if (discarded > 0) {
         console.warn(

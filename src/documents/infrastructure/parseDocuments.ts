@@ -9,16 +9,15 @@ export interface ParsedDocuments {
  * Unreadable entries are dropped rather than failing the whole response, so one
  * broken record does not leave the user on an error screen. `discarded` is
  * reported so the caller can surface the loss instead of swallowing it.
+ *
+ * Takes the entries rather than the raw payload: whether a payload that is not
+ * a list at all is an error or a fresh start is the caller's decision.
  */
-export function parseDocuments(payload: unknown): ParsedDocuments {
-  if (!Array.isArray(payload)) {
-    return { documents: [], discarded: 0 };
-  }
-
+export function parseDocuments(entries: unknown[]): ParsedDocuments {
   const documents: Document[] = [];
   let discarded = 0;
 
-  for (const entry of payload) {
+  for (const entry of entries) {
     const document = toDocument(entry);
 
     if (document === null) {

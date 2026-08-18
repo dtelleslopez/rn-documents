@@ -102,11 +102,4 @@ describe('parseDocuments', () => {
 
     expect(documents[0].contributors).toEqual([{ id: 'known', name: 'Ada' }]);
   });
-
-  it('yields no documents when the payload is not a list', () => {
-    expect(parseDocuments({ unexpected: 'shape' })).toEqual({
-      documents: [],
-      discarded: 0,
-    });
-  });
 });

@@ -69,6 +69,17 @@ describe('createHttpDocumentRepository', () => {
     );
   });
 
+  it('fails when the server answers with JSON that is not a list', async () => {
+    const repository = createHttpDocumentRepository({
+      baseUrl: 'http://example.test:8080',
+      fetch: serverReturningJson({ unexpected: 'shape' }),
+    });
+
+    await expect(repository.list()).rejects.toThrow(
+      'The document server answered with something that is not a list of documents',
+    );
+  });
+
   it('gives up when the server takes too long to answer', async () => {
     jest.useFakeTimers();
     // A server that never answers, and that honours cancellation the way fetch

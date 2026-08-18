@@ -4,6 +4,7 @@ import { createCompositeDocumentRepository } from './documents/infrastructure/co
 import { createFileTextStorage } from './documents/infrastructure/fileTextStorage';
 import { createHttpDocumentRepository } from './documents/infrastructure/httpDocumentRepository';
 import { pickDocumentFileName } from './documents/infrastructure/pickDocumentFileName';
+import { shareDocument } from './documents/infrastructure/shareDocument';
 import { createStoredDocumentStore } from './documents/infrastructure/storedDocumentStore';
 import { DocumentsDependencies } from './documents/ui/documentsContext';
 import { createReconnectingNotificationSource } from './notifications/infrastructure/reconnectingNotificationSource';
@@ -29,6 +30,7 @@ export function createDocumentsDependencies(): DocumentsDependencies {
     newId: randomUUID,
     now: () => new Date(),
     pickFile: pickDocumentFileName,
+    share: shareDocument,
   };
 }
 

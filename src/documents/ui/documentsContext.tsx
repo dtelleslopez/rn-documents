@@ -1,5 +1,6 @@
 import React, { createContext, ReactNode, useContext } from 'react';
 
+import { Document } from '../domain/document';
 import { DocumentsReader } from '../domain/documentsReader';
 import { DocumentStore } from '../domain/documentStore';
 
@@ -9,6 +10,7 @@ export interface DocumentsDependencies {
   newId: () => string;
   now: () => Date;
   pickFile: () => Promise<string | null>;
+  share: (document: Document) => Promise<void>;
 }
 
 const DocumentsContext = createContext<DocumentsDependencies | null>(null);

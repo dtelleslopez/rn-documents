@@ -13,6 +13,7 @@ export function testDependencies(
     newId: () => 'generated-id',
     now: () => new Date('2026-08-17T10:00:00Z'),
     pickFile: async () => null,
+    share: async () => {},
     ...overrides,
   };
 }

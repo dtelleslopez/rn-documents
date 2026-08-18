@@ -56,7 +56,7 @@ restart the bundler, Fast Refresh will not pick it up.
 ## Checks
 
 ```bash
-npm test          # 145 tests, 27 suites (Jest + jest-expo + React Native Testing Library)
+npm test          # 156 tests, 26 suites (Jest + jest-expo + React Native Testing Library)
 npm run typecheck # tsc --noEmit
 npm run lint      # expo lint
 ```
@@ -189,6 +189,8 @@ closes the socket, and reopening happens on its own when the app comes back.
   discards and the adapters log that count as a developer trace. It stays off the screen
   deliberately: it would name a loss the user can do nothing about, in documents that will never
   be served again anyway.
+- **Closing the add sheet keeps the draft.** Both sheets close from a tap outside, and what the
+  user typed survives until a successful submit clears it, so a stray touch costs nothing.
 - **Pull to refresh, and an explicit retry.** The gesture is the everyday way back to the server;
   the button is there because a gesture nobody can see is not an escape route when the screen has
   no list to pull.

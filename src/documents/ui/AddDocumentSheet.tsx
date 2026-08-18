@@ -44,8 +44,11 @@ export function AddDocumentSheet({
     setFailed(false);
   }
 
+  // The draft survives the sheet closing, from the cross or a tap outside: a
+  // stray touch must not cost the user what they typed. Only a successful
+  // submit clears the form.
   function dismiss() {
-    reset();
+    setFailed(false);
     onDismiss();
   }
 
@@ -96,13 +99,13 @@ export function AddDocumentSheet({
       animationType="slide"
       onRequestClose={dismiss}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <Pressable style={styles.backdrop} onPress={dismiss} testID="add-document-backdrop">
+        <Pressable style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.heading}>Add document</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close without saving"
+              accessibilityLabel="Close"
               onPress={dismiss}
               style={styles.close}
             >
@@ -164,8 +167,8 @@ export function AddDocumentSheet({
               <Text style={styles.submitText}>Submit</Text>
             </Pressable>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

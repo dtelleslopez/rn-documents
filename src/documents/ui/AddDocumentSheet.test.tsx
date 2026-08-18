@@ -158,11 +158,46 @@ describe('AddDocumentSheet', () => {
     const onDismiss = jest.fn();
     await renderSheet({ onDismiss });
 
-    await fireEvent.press(
-      screen.getByRole('button', { name: 'Close without saving' }),
-    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
 
     expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('closes from a tap outside the sheet', async () => {
+    const onDismiss = jest.fn();
+    await renderSheet({ onDismiss });
+
+    await fireEvent.press(screen.getByTestId('add-document-backdrop'));
+
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('keeps the draft when closed, for the next time it opens', async () => {
+    await renderSheet();
+
+    await type('Name', 'Half-written');
+    await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
+
+    expect(screen.getByLabelText('Name').props.value).toBe('Half-written');
+  });
+
+  it('drops the failure notice when closed, but not the draft', async () => {
+    await renderSheet({
+      onSubmit: async () => {
+        throw new Error('the disk is full');
+      },
+    });
+
+    await type('Name', 'Kitchen notes');
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Submit'));
+    });
+    await screen.findByText('Could not save the document');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
+
+    expect(screen.queryByText('Could not save the document')).toBeNull();
+    expect(screen.getByLabelText('Name').props.value).toBe('Kitchen notes');
   });
 
   it('stays open and says so when the document could not be saved', async () => {

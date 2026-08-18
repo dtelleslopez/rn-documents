@@ -87,6 +87,10 @@ describe('AddDocumentSheet', () => {
   });
 
   it('refuses a second submit while the first is still being saved', async () => {
+    // Two taps in the same frame are exactly what this simulates, and React
+    // logs an error about the overlapping dispatches the simulation needs.
+    // Silenced here, in this test alone.
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
     let resolveSubmit!: () => void;
     const onSubmit = jest.fn(
       () =>
@@ -106,6 +110,7 @@ describe('AddDocumentSheet', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
 
     await act(async () => resolveSubmit());
+    error.mockRestore();
   });
 
   it('lets the user remove an attachment picked by mistake', async () => {

@@ -98,11 +98,16 @@ describe('createStoredDocumentStore', () => {
   });
 
   it('drops an unreadable entry rather than everything stored with it', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const readable = aDocument({ id: 'readable' });
     const corrupt = `[{"nonsense": true},${serializeDocuments([readable]).slice(1)}`;
     const { storage } = storageHolding(corrupt);
 
     expect(await createStoredDocumentStore(storage).list()).toEqual([readable]);
+    expect(warn).toHaveBeenCalledWith(
+      'Discarded 1 unreadable stored document(s)',
+    );
+    warn.mockRestore();
   });
 
   it('warns and starts empty when the stored text is not JSON at all', async () => {

@@ -149,5 +149,11 @@ closes the socket, and reopening happens on its own when the app comes back.
 - **Sorting never refetches.** Picking an order rearranges the documents already on screen. Going
   back to the server would answer with a different random collection, so the list would look
   shuffled rather than sorted — the user would have asked to sort and got new data instead.
+- **The status bar is dark, and that is a decision Expo Go made for us.** Its background belongs
+  to the host activity: `expo-status-bar` dropped `backgroundColor` in SDK 57, `androidStatusBar`
+  in `app.json` only reaches a real build, and React Native's own `StatusBar` does not paint it
+  either — all three were tried. So the icons are set to light, which is legible over the black
+  bar Expo Go gives us, and `app.json` declares the same black for a build. Both agree instead of
+  one of them looking broken.
 - **Neither the order nor the layout is persisted**, the same as the notification counter: they
   describe how you are looking at the list right now, not something the app owes you tomorrow.

@@ -24,7 +24,7 @@ export default function App() {
         <NotificationsProvider dependencies={notificationsDependencies}>
           <SafeAreaView style={styles.container}>
             <DocumentListScreen />
-            <StatusBar style="auto" />
+            <StatusBar style="light" />
           </SafeAreaView>
         </NotificationsProvider>
       </DocumentsProvider>

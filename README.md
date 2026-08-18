@@ -18,6 +18,8 @@ there is nothing to compile: install the dependencies, point it at the server an
 - **Creates documents locally**, from a sheet with name, version and attachments picked
   from the device. New documents show up in the same list as the server ones, and they are still
   there after the app is closed and reopened.
+- **Shares any document** through the system share sheet — its name and version as text,
+  since there is no file behind it to hand over.
 - **Notifies about documents other users create**, over `ws://…/notifications`. A bell in the
   header carries the number of documents created since you last looked; tapping it clears the
   count. It survives the server going away and coming back without reloading the app.
@@ -56,7 +58,7 @@ restart the bundler, Fast Refresh will not pick it up.
 ## Checks
 
 ```bash
-npm test          # 160 tests, 26 suites (Jest + jest-expo + React Native Testing Library)
+npm test          # 167 tests, 27 suites (Jest + jest-expo + React Native Testing Library)
 npm run typecheck # tsc --noEmit
 npm run lint      # expo lint
 ```
@@ -175,6 +177,12 @@ closes the socket, and reopening happens on its own when the app comes back.
 - **No notification panel, no refresh on notification, no navigation to the notified document.**
   The mockup defines none of them, and the last two would be a visual lie: refreshing returns a
   completely different random list, and the announced document id does not exist in the API.
+- **Share exists to show the native integration, and it knows its limits.** Every card carries
+  a share button, and what it hands the system sheet is text: the document's name and version.
+  There is no document behind it that the receiver could open — a server document is random
+  data that ceased to exist with the response that carried it, and one created here lives only
+  on this device — so the button does not pretend otherwise by attaching anything. It is there
+  to show the native feature working end to end, without a dependency.
 - **Only the documents created here are persisted**, never the server's answers. Every request
   returns a different random collection, so a cached copy would be a snapshot of documents that
   will never come back — presented as "your documents". Offline you see what is yours, plus the

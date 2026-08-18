@@ -201,6 +201,31 @@ describe('DocumentListScreen creation', () => {
   });
 });
 
+describe('DocumentListScreen sharing', () => {
+  it('hands the document to the native share', async () => {
+    const share = jest.fn(async () => {});
+    const store = createInMemoryDocumentStore();
+    await store.add(aDocument({ title: 'Kitchen notes' }));
+
+    await renderWithProviders(
+      testDependencies({
+        store,
+        reader: createCompositeDocumentRepository([store]),
+        share,
+      }),
+    );
+    await screen.findByText('Kitchen notes');
+
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Share Kitchen notes' }),
+    );
+
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Kitchen notes' }),
+    );
+  });
+});
+
 describe('DocumentListScreen sorting and layout', () => {
   const alphabet = [
     aDocument({

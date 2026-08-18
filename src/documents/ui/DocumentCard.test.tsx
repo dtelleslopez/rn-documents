@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
 import { aDocument } from '../testing/documentBuilder';
@@ -11,6 +11,7 @@ describe('DocumentCard', () => {
     await render(
       <DocumentCard
         now={NOW}
+        onShare={() => {}}
         document={aDocument({ title: 'Hop Rod Rye', version: '2.6.16' })}
       />,
     );
@@ -22,7 +23,8 @@ describe('DocumentCard', () => {
   // The form lets a document through without a version, and a bare "Version"
   // label with nothing after it reads as a bug.
   it('says nothing about the version when there is none', async () => {
-    await render(<DocumentCard now={NOW} document={aDocument({ version: '' })} />);
+    await render(<DocumentCard now={NOW}
+        onShare={() => {}} document={aDocument({ version: '' })} />);
 
     expect(screen.queryByText(/Version/)).toBeNull();
   });
@@ -31,6 +33,7 @@ describe('DocumentCard', () => {
     await render(
       <DocumentCard
         now={NOW}
+        onShare={() => {}}
         document={aDocument({ createdAt: new Date('2026-08-18T09:00:00Z') })}
       />,
     );
@@ -42,6 +45,7 @@ describe('DocumentCard', () => {
     await render(
       <DocumentCard
         now={NOW}
+        onShare={() => {}}
         layout="grid"
         document={aDocument({ createdAt: new Date('2026-08-18T09:00:00Z') })}
       />,
@@ -54,6 +58,7 @@ describe('DocumentCard', () => {
     await render(
       <DocumentCard
         now={NOW}
+        onShare={() => {}}
         document={aDocument({
           contributors: [
             { id: 'first', name: 'Carlie Abott' },
@@ -79,6 +84,7 @@ describe('DocumentCard', () => {
     await render(
       <DocumentCard
         now={NOW}
+        onShare={() => {}}
         document={aDocument({ contributors: [], attachments: ['Stout'] })}
       />,
     );
@@ -93,6 +99,7 @@ describe('DocumentCard', () => {
     await render(
       <DocumentCard
         now={NOW}
+        onShare={() => {}}
         layout="grid"
         document={aDocument({
           title: 'Stone IPA',
@@ -110,10 +117,38 @@ describe('DocumentCard', () => {
     expect(screen.queryByText('Attachments')).toBeNull();
   });
 
+  it('hands the document over when the user shares it', async () => {
+    const onShare = jest.fn();
+    const document = aDocument({ title: 'Kitchen notes' });
+    await render(<DocumentCard now={NOW} onShare={onShare} document={document} />);
+
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Share Kitchen notes' }),
+    );
+
+    expect(onShare).toHaveBeenCalledWith(document);
+  });
+
+  it('offers to share it side by side too', async () => {
+    await render(
+      <DocumentCard
+        now={NOW}
+        onShare={() => {}}
+        layout="grid"
+        document={aDocument({ title: 'Kitchen notes' })}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Share Kitchen notes' }),
+    ).toBeTruthy();
+  });
+
   it('shows nothing but the title for a document just created', async () => {
     await render(
       <DocumentCard
         now={NOW}
+        onShare={() => {}}
         document={aDocument({
           title: 'Notes',
           contributors: [],

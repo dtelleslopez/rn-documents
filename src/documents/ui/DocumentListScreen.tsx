@@ -28,7 +28,7 @@ import { DocumentsState, useDocuments } from './useDocuments';
 export function DocumentListScreen() {
   const { state, refresh, insert } = useDocuments();
   const { create } = useCreateDocument();
-  const { pickFile, now } = useDocumentsDependencies();
+  const { pickFile, now, share } = useDocumentsDependencies();
   const { count, acknowledge } = useUnseenNotifications();
   const [adding, setAdding] = useState(false);
   const [sorting, setSorting] = useState(false);
@@ -86,6 +86,7 @@ export function DocumentListScreen() {
           now={now}
           refreshing={refreshing}
           onRefresh={pull}
+          onShare={share}
         />
       </View>
 
@@ -133,6 +134,7 @@ interface DocumentsProps {
   now: () => Date;
   refreshing: boolean;
   onRefresh: () => void;
+  onShare: (document: Document) => void;
 }
 
 function Documents({
@@ -141,6 +143,7 @@ function Documents({
   now,
   refreshing,
   onRefresh,
+  onShare,
 }: DocumentsProps) {
   if (state.status === 'loading') {
     return (
@@ -205,7 +208,12 @@ function Documents({
           isFiller(item) ? (
             <View style={styles.gridFiller} testID="grid-filler" />
           ) : (
-            <DocumentCard document={item} layout={layout} now={now()} />
+            <DocumentCard
+              document={item}
+              layout={layout}
+              now={now()}
+              onShare={onShare}
+            />
           )
         }
         numColumns={grid ? 2 : 1}

@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Document } from '../domain/document';
 import { relativeTime } from './relativeTime';
@@ -19,12 +19,14 @@ interface DocumentCardProps {
   document: Document;
   now: Date;
   layout?: DocumentCardLayout;
+  onShare: (document: Document) => void;
 }
 
 export function DocumentCard({
   document,
   now,
   layout = 'list',
+  onShare,
 }: DocumentCardProps) {
   const everySection: Section[] = [
     {
@@ -49,13 +51,30 @@ export function DocumentCard({
 
   return (
     <View style={[styles.card, layout === 'grid' && styles.gridCard]}>
-      <View style={[styles.heading, layout === 'grid' && styles.stackedHeading]}>
-        <Text accessibilityLabel="Document title" style={styles.title}>
-          {document.title}
-        </Text>
-        {document.version.trim().length > 0 && (
-          <Text style={styles.version}>Version {document.version}</Text>
-        )}
+      <View style={styles.topRow}>
+        <View
+          style={[
+            styles.heading,
+            styles.headingArea,
+            layout === 'grid' && styles.stackedHeading,
+          ]}
+        >
+          <Text accessibilityLabel="Document title" style={styles.title}>
+            {document.title}
+          </Text>
+          {document.version.trim().length > 0 && (
+            <Text style={styles.version}>Version {document.version}</Text>
+          )}
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Share ${document.title}`}
+          onPress={() => onShare(document)}
+          hitSlop={8}
+        >
+          <Ionicons name="share-outline" size={18} color="#6b7280" />
+        </Pressable>
       </View>
 
       {sections.length > 0 && (
@@ -97,10 +116,18 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
   heading: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 8,
+  },
+  headingArea: {
+    flex: 1,
   },
   // Only side by side: the two columns share the width evenly. In a single
   // column it would fight the list's own height.

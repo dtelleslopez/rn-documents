@@ -23,7 +23,7 @@ import { DocumentListToolbar } from './DocumentListToolbar';
 import { SortBySheet } from './SortBySheet';
 import { useDocumentsDependencies } from './documentsContext';
 import { useCreateDocument } from './useCreateDocument';
-import { useDocuments } from './useDocuments';
+import { DocumentsState, useDocuments } from './useDocuments';
 
 export function DocumentListScreen() {
   const { state, refresh, insert } = useDocuments();
@@ -118,7 +118,7 @@ export function DocumentListScreen() {
 }
 
 interface DocumentsProps {
-  state: ReturnType<typeof useDocuments>['state'];
+  state: DocumentsState;
   layout: DocumentCardLayout;
   now: () => Date;
   refreshing: boolean;

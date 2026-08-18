@@ -50,8 +50,3 @@ export function newDocument(
   };
 }
 
-export function sortByMostRecentlyCreated(documents: Document[]): Document[] {
-  return [...documents].sort(
-    (left, right) => right.createdAt.getTime() - left.createdAt.getTime(),
-  );
-}

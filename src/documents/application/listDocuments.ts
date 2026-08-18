@@ -1,8 +1,10 @@
-import { Document, sortByMostRecentlyCreated } from '../domain/document';
+import { Document } from '../domain/document';
+import { sortDocuments } from '../domain/documentOrder';
 import { DocumentRepository } from '../domain/documentRepository';
 
+// The order the list opens with; from there the user picks.
 export async function listDocuments(
   repository: DocumentRepository,
 ): Promise<Document[]> {
-  return sortByMostRecentlyCreated(await repository.list());
+  return sortDocuments(await repository.list(), 'newest');
 }

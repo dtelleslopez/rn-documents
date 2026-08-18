@@ -12,7 +12,14 @@ interface Section {
   items: string[];
 }
 
-export function DocumentCard({ document }: { document: Document }) {
+export type DocumentCardLayout = 'list' | 'grid';
+
+interface DocumentCardProps {
+  document: Document;
+  layout?: DocumentCardLayout;
+}
+
+export function DocumentCard({ document, layout = 'list' }: DocumentCardProps) {
   const everySection: Section[] = [
     {
       icon: 'people-outline',
@@ -27,12 +34,16 @@ export function DocumentCard({ document }: { document: Document }) {
   ];
 
   // A document created in the app has no contributors and may have no
-  // attachments, and a heading over nothing reads as a rendering bug.
-  const sections = everySection.filter((section) => section.items.length > 0);
+  // attachments, and a heading over nothing reads as a rendering bug. Side by
+  // side there is no room for either list, so the card is its heading.
+  const sections =
+    layout === 'grid'
+      ? []
+      : everySection.filter((section) => section.items.length > 0);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.heading}>
+    <View style={[styles.card, layout === 'grid' && styles.gridCard]}>
+      <View style={[styles.heading, layout === 'grid' && styles.stackedHeading]}>
         <Text accessibilityLabel="Document title" style={styles.title}>
           {document.title}
         </Text>
@@ -82,6 +93,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 8,
+  },
+  // Only side by side: the two columns share the width evenly. In a single
+  // column it would fight the list's own height.
+  gridCard: {
+    flex: 1,
+  },
+  stackedHeading: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
   },
   title: {
     flexShrink: 1,

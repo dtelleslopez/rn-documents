@@ -9,7 +9,8 @@ there is nothing to compile: install the dependencies, point it at the server an
 ## What it does
 
 - **Lists the documents** exposed by `GET /documents`, newest first, with a loading state, an
-  empty state and an error state that says what went wrong.
+  empty state and an error state that says what went wrong. They can be reordered by name or by
+  creation date, and shown either as a list or two-up as a grid.
 - **Creates documents locally**, from a sheet with name, version and attachments picked
   from the device. New documents show up in the same list as the server ones.
 - **Notifies about documents other users create**, over `ws://…/notifications`. A bell in the
@@ -145,5 +146,8 @@ closes the socket, and reopening happens on its own when the app comes back.
 - **No notification panel, no refresh on notification, no navigation to the notified document.**
   The mockup defines none of them, and the last two would be a visual lie: refreshing returns a
   completely different random list, and the announced document id does not exist in the API.
-- **"Sort by" and the list/grid toggle** from the mockup are not implemented. They are a separate
-  feature, not a detail of this one.
+- **Sorting never refetches.** Picking an order rearranges the documents already on screen. Going
+  back to the server would answer with a different random collection, so the list would look
+  shuffled rather than sorted — the user would have asked to sort and got new data instead.
+- **Neither the order nor the layout is persisted**, the same as the notification counter: they
+  describe how you are looking at the list right now, not something the app owes you tomorrow.

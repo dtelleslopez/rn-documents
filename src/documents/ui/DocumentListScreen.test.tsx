@@ -187,3 +187,82 @@ describe('DocumentListScreen creation', () => {
     expect(screen.queryByText('Document information')).toBeNull();
   });
 });
+
+describe('DocumentListScreen sorting and layout', () => {
+  const alphabet = [
+    aDocument({
+      id: 'stone',
+      title: 'Stone IPA',
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+    }),
+    aDocument({
+      id: 'hop',
+      title: 'Hop Rod Rye',
+      createdAt: new Date('2020-01-01T00:00:00Z'),
+    }),
+  ];
+
+  function shownTitles(): unknown[] {
+    return screen
+      .getAllByLabelText('Document title')
+      .map((title) => title.props.children);
+  }
+
+  async function pickOrder(label: string) {
+    await fireEvent.press(screen.getByLabelText('Sort by'));
+    await fireEvent.press(await screen.findByLabelText(label));
+  }
+
+  // Every call to the server answers with a different random collection, so
+  // reordering by fetching again would shuffle the list instead of sorting it.
+  it('reorders what is already on screen, without asking the server again', async () => {
+    let calls = 0;
+    await renderScreen({
+      list: async () => {
+        calls += 1;
+        return alphabet;
+      },
+    });
+    await screen.findByText('Stone IPA');
+
+    await pickOrder('Name A-Z');
+
+    expect(shownTitles()).toEqual(['Hop Rod Rye', 'Stone IPA']);
+    expect(calls).toBe(1);
+  });
+
+  it('goes back to the newest first when asked', async () => {
+    await renderScreen({ list: async () => alphabet });
+    await screen.findByText('Stone IPA');
+
+    await pickOrder('Name A-Z');
+    await pickOrder('Newest first');
+
+    expect(shownTitles()).toEqual(['Stone IPA', 'Hop Rod Rye']);
+  });
+
+  it('keeps the toolbar in place when there is nothing to sort', async () => {
+    await renderScreen({ list: async () => [] });
+    await screen.findByText('There are no documents yet');
+
+    expect(screen.getByLabelText('Sort by')).toBeTruthy();
+    expect(screen.getByLabelText('Show as grid')).toBeTruthy();
+  });
+
+  it('drops the details when the documents go side by side', async () => {
+    await renderScreen({
+      list: async () => [
+        aDocument({
+          title: 'Stone IPA',
+          contributors: [{ id: 'first', name: 'Lencra Boyer' }],
+        }),
+      ],
+    });
+    await screen.findByText('Stone IPA');
+
+    await fireEvent.press(screen.getByLabelText('Show as grid'));
+
+    expect(screen.getByText('Stone IPA')).toBeTruthy();
+    expect(screen.queryByText('Lencra Boyer')).toBeNull();
+  });
+});

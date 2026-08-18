@@ -57,6 +57,28 @@ describe('DocumentCard', () => {
     expect(screen.getByText('Attachments')).toBeTruthy();
   });
 
+  // Side by side there is half the width, and the mockup spends it on the two
+  // things that tell one document from another.
+  it('keeps only the name and the version when laid out side by side', async () => {
+    await render(
+      <DocumentCard
+        layout="grid"
+        document={aDocument({
+          title: 'Stone IPA',
+          version: '3.8.11',
+          contributors: [{ id: 'first', name: 'Lencra Boyer' }],
+          attachments: ['Stout'],
+        })}
+      />,
+    );
+
+    expect(screen.getByLabelText('Document title')).toHaveTextContent('Stone IPA');
+    expect(screen.getByText('Version 3.8.11')).toBeTruthy();
+    expect(screen.queryByText('Contributors')).toBeNull();
+    expect(screen.queryByText('Lencra Boyer')).toBeNull();
+    expect(screen.queryByText('Attachments')).toBeNull();
+  });
+
   it('shows nothing but the title for a document just created', async () => {
     await render(
       <DocumentCard

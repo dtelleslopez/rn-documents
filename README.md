@@ -180,6 +180,9 @@ closes the socket, and reopening happens on its own when the app comes back.
 - **Sorting never refetches.** Picking an order rearranges the documents already on screen. Going
   back to the server would answer with a different random collection, so the list would look
   shuffled rather than sorted — the user would have asked to sort and got new data instead.
+- **Neither does creating a document.** The new document is placed into the list on screen, in
+  the position the active order gives it. The reload that used to follow would answer with a
+  different random collection, and the whole list would change right after the user added to it.
 - **Pull to refresh, and an explicit retry.** The gesture is the everyday way back to the server;
   the button is there because a gesture nobody can see is not an escape route when the screen has
   no list to pull.

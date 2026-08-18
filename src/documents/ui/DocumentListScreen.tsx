@@ -26,7 +26,7 @@ import { useCreateDocument } from './useCreateDocument';
 import { useDocuments } from './useDocuments';
 
 export function DocumentListScreen() {
-  const { state, refresh } = useDocuments();
+  const { state, refresh, insert } = useDocuments();
   const { create } = useCreateDocument();
   const { pickFile, now } = useDocumentsDependencies();
   const { count, acknowledge } = useUnseenNotifications();
@@ -47,7 +47,7 @@ export function DocumentListScreen() {
     [state, order],
   );
 
-  // Owned here rather than in the hook because creating a document reloads the
+  // Owned here rather than in the hook because the retry buttons reload the
   // list too, and the pull indicator belongs to the gesture alone.
   async function pull() {
     setRefreshing(true);
@@ -61,9 +61,9 @@ export function DocumentListScreen() {
   }
 
   async function add(draft: DocumentDraft) {
-    await create(draft);
+    const document = await create(draft);
     setAdding(false);
-    refresh();
+    insert(document);
   }
 
   return (

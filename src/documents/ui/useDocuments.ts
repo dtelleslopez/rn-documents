@@ -12,6 +12,7 @@ export type DocumentsState =
 interface UseDocumentsResult {
   state: DocumentsState;
   refresh: () => Promise<void>;
+  insert: (document: Document) => void;
 }
 
 export function useDocuments(): UseDocumentsResult {
@@ -46,6 +47,31 @@ export function useDocuments(): UseDocumentsResult {
     }
   }, [reader]);
 
+  // A document created here is already in the local store: asking the server
+  // for it again would answer with a different random collection, and the
+  // list would change under the user right after they added to it.
+  const insert = useCallback(
+    (document: Document) => {
+      if (state.status !== 'ready') {
+        // Nothing on screen to place it into. Reading again shows it, since
+        // the store now has it to offer.
+        void load();
+        return;
+      }
+
+      // A reading still in flight predates the creation and may not contain
+      // it, so it is not allowed to land on top of this.
+      latestRequest.current += 1;
+
+      setState((current) =>
+        current.status === 'ready'
+          ? { ...current, documents: [...current.documents, document] }
+          : current,
+      );
+    },
+    [state.status, load],
+  );
+
   useEffect(() => {
     // The state updates happen after awaiting the repository, never during
     // this render pass.
@@ -54,7 +80,7 @@ export function useDocuments(): UseDocumentsResult {
     })();
   }, [load]);
 
-  return { state, refresh: load };
+  return { state, refresh: load, insert };
 }
 
 function messageOf(error: unknown): string {

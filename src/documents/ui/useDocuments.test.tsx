@@ -134,6 +134,88 @@ describe('useDocuments', () => {
     expect(result.current.state.status).toBe('ready');
   });
 
+  it('places a created document into the list without reading again', async () => {
+    const read = jest.fn(async () => ({
+      documents: [aDocument({ id: 'remote' })],
+      incomplete: false,
+    }));
+    const { result } = await renderUseDocuments({ read });
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+
+    await act(async () => {
+      result.current.insert(aDocument({ id: 'created' }));
+    });
+
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(result.current.state).toEqual({
+      status: 'ready',
+      documents: [aDocument({ id: 'remote' }), aDocument({ id: 'created' })],
+      incomplete: false,
+    });
+  });
+
+  it('reads again when a document arrives before the list is ready', async () => {
+    let calls = 0;
+    const read = jest.fn(async () => {
+      calls += 1;
+
+      if (calls === 1) {
+        throw new Error('the server is down');
+      }
+
+      return { documents: [aDocument({ id: 'created' })], incomplete: true };
+    });
+    const { result } = await renderUseDocuments({ read });
+    await waitFor(() => expect(result.current.state.status).toBe('failed'));
+
+    await act(async () => {
+      result.current.insert(aDocument({ id: 'created' }));
+    });
+
+    await waitFor(() => {
+      expect(result.current.state).toEqual({
+        status: 'ready',
+        documents: [aDocument({ id: 'created' })],
+        incomplete: true,
+      });
+    });
+  });
+
+  it('does not let a reading in flight land on top of an inserted document', async () => {
+    const firstLoad = deferred<DocumentsReading>();
+    const refreshInFlight = deferred<DocumentsReading>();
+    const read = jest
+      .fn<Promise<DocumentsReading>, []>()
+      .mockReturnValueOnce(firstLoad.promise)
+      .mockReturnValueOnce(refreshInFlight.promise);
+    const { result } = await renderUseDocuments({ read });
+
+    await act(async () => {
+      firstLoad.resolve({
+        documents: [aDocument({ id: 'remote' })],
+        incomplete: false,
+      });
+    });
+    await act(async () => {
+      result.current.refresh();
+    });
+    await act(async () => {
+      result.current.insert(aDocument({ id: 'created' }));
+    });
+    await act(async () => {
+      refreshInFlight.resolve({
+        documents: [aDocument({ id: 'shuffled' })],
+        incomplete: false,
+      });
+    });
+
+    expect(result.current.state).toEqual({
+      status: 'ready',
+      documents: [aDocument({ id: 'remote' }), aDocument({ id: 'created' })],
+      incomplete: false,
+    });
+  });
+
   it('ignores a slow answer that lost the race against a newer one', async () => {
     const slowFirstLoad = deferred<DocumentsReading>();
     const fastRefresh = deferred<DocumentsReading>();

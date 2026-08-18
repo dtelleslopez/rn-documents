@@ -155,7 +155,13 @@ describe('DocumentListScreen creation', () => {
   });
 
   it('shows the created document in the list without a server round trip', async () => {
-    await renderScreen({ list: async () => [] });
+    let calls = 0;
+    await renderScreen({
+      list: async () => {
+        calls += 1;
+        return [];
+      },
+    });
     await screen.findByText('There are no documents yet');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
@@ -163,6 +169,9 @@ describe('DocumentListScreen creation', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
 
     expect(await screen.findByText('My report')).toBeTruthy();
+    // A reload would answer with a different random collection and shuffle
+    // the list right after the user added to it.
+    expect(calls).toBe(1);
   });
 
   it('leaves the badge alone when the user creates a document', async () => {
@@ -346,39 +355,6 @@ describe('DocumentListScreen refreshing', () => {
     expect(await screen.findByText('Back online')).toBeTruthy();
   });
 
-  // Creating a document reloads the list too, and the pull indicator there
-  // would look like the app went to the server for something the user did
-  // locally.
-  it('leaves the pull indicator alone when a document is created', async () => {
-    // The reload that follows a creation is left hanging, so the indicator is
-    // observed while it would be spinning rather than after it settled.
-    let releaseReload = () => {};
-    let calls = 0;
-    await renderScreen({
-      list: async () => {
-        calls += 1;
-
-        if (calls > 1) {
-          await new Promise<void>((resolve) => {
-            releaseReload = resolve;
-          });
-        }
-
-        return [aDocument({ title: 'Ten FIDY' })];
-      },
-    });
-    await screen.findByText('Ten FIDY');
-
-    await fireEvent.press(screen.getByLabelText('Add document'));
-    await fireEvent.changeText(screen.getByLabelText('Name'), 'Notes');
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Submit'));
-    });
-
-    expect(refreshControl().props.refreshing).toBe(false);
-
-    await act(async () => releaseReload());
-  });
 });
 
 describe('DocumentListScreen partial readings', () => {

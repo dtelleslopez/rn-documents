@@ -71,11 +71,22 @@ export function AddDocumentSheet({
   }
 
   async function choose() {
-    const name = await pickFile();
+    try {
+      const name = await pickFile();
 
-    if (name !== null) {
-      setAttachments((current) => [...current, name]);
+      if (name !== null) {
+        setAttachments((current) => [...current, name]);
+      }
+    } catch {
+      // A picker that fails looks the same as one that was dismissed from
+      // here: no file arrives.
     }
+  }
+
+  function removeAttachment(position: number) {
+    setAttachments((current) =>
+      current.filter((_, index) => index !== position),
+    );
   }
 
   return (
@@ -121,10 +132,19 @@ export function AddDocumentSheet({
               <Text style={styles.chooseFileText}>Choose file</Text>
             </Pressable>
 
-            {attachments.map((attachment) => (
-              <Text key={attachment} style={styles.attachment}>
-                {attachment}
-              </Text>
+            {/* Keyed by position because two picked files can share a name. */}
+            {attachments.map((attachment, position) => (
+              <View key={position} style={styles.attachment}>
+                <Text style={styles.attachmentName}>{attachment}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${attachment}`}
+                  onPress={() => removeAttachment(position)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={16} color="#5f6b7a" />
+                </Pressable>
+              </View>
             ))}
           </ScrollView>
 
@@ -251,6 +271,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   attachment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  attachmentName: {
+    flexShrink: 1,
     fontSize: 14,
     color: '#5f6b7a',
   },

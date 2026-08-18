@@ -108,6 +108,52 @@ describe('AddDocumentSheet', () => {
     await act(async () => resolveSubmit());
   });
 
+  it('lets the user remove an attachment picked by mistake', async () => {
+    const onSubmit = jest.fn();
+    const picked = ['contract.pdf', 'notes.txt'];
+    let picks = 0;
+    await renderSheet({ onSubmit, pickFile: async () => picked[picks++] });
+
+    await type('Name', 'Quarterly report');
+    await fireEvent.press(screen.getByRole('button', { name: 'Choose file' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Choose file' }));
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Remove contract.pdf' }),
+    );
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: ['notes.txt'] }),
+    );
+  });
+
+  it('keeps two attachments that share a name apart', async () => {
+    await renderSheet({ pickFile: async () => 'contract.pdf' });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Choose file' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Choose file' }));
+
+    expect(screen.getAllByText('contract.pdf')).toHaveLength(2);
+  });
+
+  it('treats a picker that fails like one that was dismissed', async () => {
+    const onSubmit = jest.fn();
+    await renderSheet({
+      onSubmit,
+      pickFile: async () => {
+        throw new Error('the picker crashed');
+      },
+    });
+
+    await type('Name', 'Quarterly report');
+    await fireEvent.press(screen.getByRole('button', { name: 'Choose file' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Submit' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ attachments: [] }),
+    );
+  });
+
   it('closes when the user dismisses it', async () => {
     const onDismiss = jest.fn();
     await renderSheet({ onDismiss });

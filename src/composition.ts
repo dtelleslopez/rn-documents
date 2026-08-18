@@ -23,7 +23,7 @@ export function createDocumentsDependencies(): DocumentsDependencies {
   const server = createHttpDocumentRepository({ baseUrl: apiBaseUrl() });
 
   return {
-    repository: createCompositeDocumentRepository([server, store]),
+    reader: createCompositeDocumentRepository([server, store]),
     store,
     newId: randomUUID,
     now: () => new Date(),

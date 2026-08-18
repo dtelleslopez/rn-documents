@@ -1,10 +1,10 @@
 import { Document } from '../domain/document';
-import { DocumentRepository } from '../domain/documentRepository';
+import { DocumentsReader } from '../domain/documentsReader';
 import { aDocument } from '../testing/documentBuilder';
 import { listDocuments } from './listDocuments';
 
-function repositoryReturning(documents: Document[]): DocumentRepository {
-  return { list: () => Promise.resolve(documents) };
+function readerReturning(documents: Document[], incomplete = false): DocumentsReader {
+  return { read: async () => ({ documents, incomplete }) };
 }
 
 describe('listDocuments', () => {
@@ -17,13 +17,18 @@ describe('listDocuments', () => {
       id: 'newest',
       createdAt: new Date('2024-06-15T00:00:00Z'),
     });
-    const repository = repositoryReturning([oldest, newest]);
 
-    const documents = await listDocuments(repository);
+    const { documents } = await listDocuments(readerReturning([oldest, newest]));
 
     expect(documents.map((document) => document.id)).toEqual([
       'newest',
       'oldest',
     ]);
+  });
+
+  it('passes on that some source could not be read', async () => {
+    const reading = await listDocuments(readerReturning([aDocument()], true));
+
+    expect(reading.incomplete).toBe(true);
   });
 });

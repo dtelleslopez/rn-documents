@@ -1,8 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import React, { ReactNode } from 'react';
 
-import { Document } from '../domain/document';
-import { DocumentRepository } from '../domain/documentRepository';
+import { DocumentsReader, DocumentsReading } from '../domain/documentsReader';
 import { aDocument } from '../testing/documentBuilder';
 import { testDependencies } from '../testing/testDependencies';
 import { DocumentsProvider } from './documentsContext';
@@ -17,9 +16,9 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function renderUseDocuments(repository: DocumentRepository) {
+function renderUseDocuments(reader: DocumentsReader) {
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <DocumentsProvider dependencies={testDependencies({ repository })}>
+    <DocumentsProvider dependencies={testDependencies({ reader })}>
       {children}
     </DocumentsProvider>
   );
@@ -30,7 +29,7 @@ function renderUseDocuments(repository: DocumentRepository) {
 describe('useDocuments', () => {
   it('is loading while the repository has not answered yet', async () => {
     const { result } = await renderUseDocuments({
-      list: () => new Promise(() => {}),
+      read: () => new Promise(() => {}),
     });
 
     expect(result.current.state).toEqual({ status: 'loading' });
@@ -38,20 +37,24 @@ describe('useDocuments', () => {
 
   it('exposes the documents once they arrive', async () => {
     const { result } = await renderUseDocuments({
-      list: async () => [aDocument({ id: 'arrived' })],
+      read: async () => ({
+        documents: [aDocument({ id: 'arrived' })],
+        incomplete: false,
+      }),
     });
 
     await waitFor(() => {
       expect(result.current.state).toEqual({
         status: 'ready',
         documents: [aDocument({ id: 'arrived' })],
+        incomplete: false,
       });
     });
   });
 
   it('exposes a failure when the repository cannot deliver', async () => {
     const { result } = await renderUseDocuments({
-      list: async () => {
+      read: async () => {
         throw new Error('The document server answered with status 500');
       },
     });
@@ -64,40 +67,64 @@ describe('useDocuments', () => {
     });
   });
 
-  it('asks the repository again when refreshed', async () => {
-    const list = jest.fn(async () => [aDocument()]);
-    const { result } = await renderUseDocuments({ list });
+  it('carries the news that a source could not be read', async () => {
+    const { result } = await renderUseDocuments({
+      read: async () => ({ documents: [aDocument()], incomplete: true }),
+    });
+
+    await waitFor(() => {
+      expect(result.current.state).toEqual({
+        status: 'ready',
+        documents: [aDocument()],
+        incomplete: true,
+      });
+    });
+  });
+
+  it('asks the reader again when refreshed', async () => {
+    const read = jest.fn(async () => ({
+      documents: [aDocument()],
+      incomplete: false,
+    }));
+    const { result } = await renderUseDocuments({ read });
     await waitFor(() => expect(result.current.state.status).toBe('ready'));
 
     await act(async () => {
       result.current.refresh();
     });
 
-    expect(list).toHaveBeenCalledTimes(2);
+    expect(read).toHaveBeenCalledTimes(2);
   });
 
   it('ignores a slow answer that lost the race against a newer one', async () => {
-    const slowFirstLoad = deferred<Document[]>();
-    const fastRefresh = deferred<Document[]>();
-    const list = jest
-      .fn<Promise<Document[]>, []>()
+    const slowFirstLoad = deferred<DocumentsReading>();
+    const fastRefresh = deferred<DocumentsReading>();
+    const read = jest
+      .fn<Promise<DocumentsReading>, []>()
       .mockReturnValueOnce(slowFirstLoad.promise)
       .mockReturnValueOnce(fastRefresh.promise);
-    const { result } = await renderUseDocuments({ list });
+    const { result } = await renderUseDocuments({ read });
 
     await act(async () => {
       result.current.refresh();
     });
     await act(async () => {
-      fastRefresh.resolve([aDocument({ id: 'fresh' })]);
+      fastRefresh.resolve({
+        documents: [aDocument({ id: 'fresh' })],
+        incomplete: false,
+      });
     });
     await act(async () => {
-      slowFirstLoad.resolve([aDocument({ id: 'stale' })]);
+      slowFirstLoad.resolve({
+        documents: [aDocument({ id: 'stale' })],
+        incomplete: false,
+      });
     });
 
     expect(result.current.state).toEqual({
       status: 'ready',
       documents: [aDocument({ id: 'fresh' })],
+      incomplete: false,
     });
   });
 });

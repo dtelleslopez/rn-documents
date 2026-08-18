@@ -11,6 +11,9 @@ there is nothing to compile: install the dependencies, point it at the server an
 - **Lists the documents** exposed by `GET /documents`, newest first, with a loading state, an
   empty state and an error state that says what went wrong. They can be reordered by name or by
   creation date, and shown either as a list or two-up as a grid.
+- **Goes back for more**: pull the list down to reload it. When the server cannot be reached, the
+  screen says so above the documents it does have — rather than claiming there are none — and
+  offers a retry.
 - **Creates documents locally**, from a sheet with name, version and attachments picked
   from the device. New documents show up in the same list as the server ones.
 - **Notifies about documents other users create**, over `ws://…/notifications`. A bell in the
@@ -51,7 +54,7 @@ restart the bundler, Fast Refresh will not pick it up.
 ## Checks
 
 ```bash
-npm test          # 94 tests, 20 suites (Jest + jest-expo + React Native Testing Library)
+npm test          # 123 tests, 24 suites (Jest + jest-expo + React Native Testing Library)
 npm run typecheck # tsc --noEmit
 npm run lint      # expo lint
 ```
@@ -87,14 +90,22 @@ the fetch hook into a loop.
 
 ### The ports, and why they pay for themselves
 
-`DocumentRepository` has **three real adapters**, which is what makes the port worth having:
+`DocumentRepository` — a single source that either answers or throws — has two adapters:
 
 - `httpDocumentRepository` — talks to the server, with a 10s timeout and a parser that keeps the
   documents it can read and discards the ones it cannot instead of failing the whole response.
 - `inMemoryDocumentStore` — the documents you create.
-- `compositeDocumentRepository` — reads from both and merges. A source that fails does not sink
-  the others: if the server is down you still see your own documents, and only a total failure
-  is reported as an error.
+
+`compositeDocumentRepository` reads both at once, and it deliberately implements a **different**
+port, `DocumentsReader`, because reading several sources can go half right in a way a single one
+cannot. It returns `{ documents, incomplete }`: a source that fails does not sink the others, so
+losing the server still shows the documents created on this device, and `incomplete` is what lets
+the screen say so. Only a total failure is thrown.
+
+That distinction was not there at first, and the cost of not having it showed up the moment the
+server was killed with the app running: the screen said "There are no documents yet", which is a
+convincing lie — the local store had answered, with nothing. Degrading silently is worse than
+failing, because the user cannot tell the difference.
 
 Writing lives in a separate `DocumentStore` port rather than in `DocumentRepository` because the
 server exposes no way to create anything. A single writable port would force the HTTP adapter to
@@ -115,6 +126,7 @@ Four things that are not in the server's README but shape every decision here:
 4. **The socket is a firehose with ghosts.** It sleeps `rand.Intn(5)` seconds between messages —
    which can be 0, so bursts — and the `DocumentID` it announces does not exist in `/documents`.
 
+A partial reading is drawn as a warning above whatever could be read, with a retry beside it.
 Because of (2), a stale response guard sits in the list hook: a slow first load landing after a
 refresh would otherwise replace newer data with older data. Because of (4), the bell counts
 instead of raising one toast per message.
@@ -131,7 +143,7 @@ closes the socket, and reopening happens on its own when the app comes back.
 
 - **No React Query.** One endpoint, no parameters, mutations that never reach the server (so
   nothing to invalidate) and a different random response on every call, so caching it would mean
-  nothing. The data layer is 257 lines written by hand, and it does exactly what this
+  nothing. The data layer is 252 lines written by hand, and it does exactly what this
   server needs: timeout, tolerant parsing, partial failure, stale-response guard.
 - **No global state library.** The shared state is a flat list of at most 21 items and a counter.
   Context plus hooks is enough, and adding Zustand would only move the same state somewhere else.
@@ -149,6 +161,9 @@ closes the socket, and reopening happens on its own when the app comes back.
 - **Sorting never refetches.** Picking an order rearranges the documents already on screen. Going
   back to the server would answer with a different random collection, so the list would look
   shuffled rather than sorted — the user would have asked to sort and got new data instead.
+- **Pull to refresh, and an explicit retry.** The gesture is the everyday way back to the server;
+  the button is there because a gesture nobody can see is not an escape route when the screen has
+  no list to pull.
 - **The status bar is dark, and that is a decision Expo Go made for us.** Its background belongs
   to the host activity: `expo-status-bar` dropped `backgroundColor` in SDK 57, `androidStatusBar`
   in `app.json` only reaches a real build, and React Native's own `StatusBar` does not paint it

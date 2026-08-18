@@ -21,13 +21,14 @@ describe('createCompositeDocumentRepository', () => {
       repositoryWith('local-1'),
     ]);
 
-    const documents = await repository.list();
+    const { documents, incomplete } = await repository.read();
 
     expect(documents.map((document) => document.id)).toEqual([
       'remote-1',
       'remote-2',
       'local-1',
     ]);
+    expect(incomplete).toBe(false);
   });
 
   it('asks every source at the same time instead of waiting in turn', async () => {
@@ -47,7 +48,7 @@ describe('createCompositeDocumentRepository', () => {
       },
     };
 
-    await createCompositeDocumentRepository([slow, quick]).list();
+    await createCompositeDocumentRepository([slow, quick]).read();
 
     expect(asked).toEqual([
       'slow started',
@@ -56,32 +57,30 @@ describe('createCompositeDocumentRepository', () => {
     ]);
   });
 
-  it('still returns what it could gather when a source fails', async () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  // The reading is what the screen shows, and a screen that cannot tell "there
+  // is nothing" from "I could not ask" lies to the user.
+  it('returns what it could gather, and says the reading is incomplete', async () => {
     const repository = createCompositeDocumentRepository([
       failingRepository('the server is down'),
       repositoryWith('local-1'),
     ]);
 
-    const documents = await repository.list();
+    const { documents, incomplete } = await repository.read();
 
     expect(documents.map((document) => document.id)).toEqual(['local-1']);
-    jest.restoreAllMocks();
+    expect(incomplete).toBe(true);
   });
 
-  it('warns instead of hiding that a source failed', async () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  it('reports an incomplete reading even when nothing was left to show', async () => {
     const repository = createCompositeDocumentRepository([
       failingRepository('the server is down'),
-      repositoryWith('local-1'),
+      repositoryWith(),
     ]);
 
-    await repository.list();
+    const { documents, incomplete } = await repository.read();
 
-    expect(warn).toHaveBeenCalledWith(
-      'Could not read documents from one source: the server is down',
-    );
-    warn.mockRestore();
+    expect(documents).toEqual([]);
+    expect(incomplete).toBe(true);
   });
 
   it('fails when not a single source could be read', async () => {
@@ -90,6 +89,6 @@ describe('createCompositeDocumentRepository', () => {
       failingRepository('storage is unavailable'),
     ]);
 
-    await expect(repository.list()).rejects.toThrow('the server is down');
+    await expect(repository.read()).rejects.toThrow('the server is down');
   });
 });

@@ -2,6 +2,9 @@ import { Document } from './document';
 
 export type DocumentOrder = 'newest' | 'oldest' | 'name-asc' | 'name-desc';
 
+// The order the list opens with, before the user picks another one.
+export const DEFAULT_DOCUMENT_ORDER: DocumentOrder = 'newest';
+
 type Comparator = (left: Document, right: Document) => number;
 
 const byCreation: Comparator = (left, right) =>

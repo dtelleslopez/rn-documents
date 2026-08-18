@@ -36,17 +36,21 @@ function renderScreen(remote: DocumentRepository, source?: NotificationSource) {
   return renderWithProviders(
     testDependencies({
       store,
-      repository: createCompositeDocumentRepository([remote, store]),
+      reader: createCompositeDocumentRepository([remote, store]),
     }),
     source,
   );
 }
 
-// For the states the screen must render, driven straight from one repository.
-// Going through the composite would mask a failure, since the local store keeps
-// answering and the composite degrades to a partial result on purpose.
+// For the states the screen must render when the server is the only source.
+// With the local store alongside it, a failing server is a partial reading
+// rather than a failed one, which is a different state on purpose.
 function renderScreenReadingFrom(repository: DocumentRepository) {
-  return renderWithProviders(testDependencies({ repository }));
+  return renderWithProviders(
+    testDependencies({
+      reader: createCompositeDocumentRepository([repository]),
+    }),
+  );
 }
 
 describe('DocumentListScreen', () => {
@@ -264,5 +268,175 @@ describe('DocumentListScreen sorting and layout', () => {
 
     expect(screen.getByText('Stone IPA')).toBeTruthy();
     expect(screen.queryByText('Lencra Boyer')).toBeNull();
+  });
+});
+
+describe('DocumentListScreen refreshing', () => {
+  function refreshControl() {
+    return screen.getByLabelText('Documents list').props.refreshControl;
+  }
+
+  it('asks the server again when the user pulls the list', async () => {
+    let calls = 0;
+    await renderScreen({
+      list: async () => {
+        calls += 1;
+        return [aDocument({ title: calls === 1 ? 'First' : 'Second' })];
+      },
+    });
+    await screen.findByText('First');
+
+    // Driven through the control the list actually received. Firing 'refresh'
+    // on the list instead would be caught by the onRefresh prop of the
+    // surrounding component and prove nothing about this wiring.
+    await act(async () => refreshControl().props.onRefresh());
+
+    expect(calls).toBe(2);
+    expect(screen.getByText('Second')).toBeTruthy();
+  });
+
+  it('spins while the pull is in flight, and stops when it lands', async () => {
+    let releaseReload = () => {};
+    let calls = 0;
+    await renderScreen({
+      list: async () => {
+        calls += 1;
+
+        if (calls > 1) {
+          await new Promise<void>((resolve) => {
+            releaseReload = resolve;
+          });
+        }
+
+        return [aDocument({ title: 'Ten FIDY' })];
+      },
+    });
+    await screen.findByText('Ten FIDY');
+
+    await act(async () => {
+      refreshControl().props.onRefresh();
+    });
+
+    expect(refreshControl().props.refreshing).toBe(true);
+
+    await act(async () => releaseReload());
+
+    expect(refreshControl().props.refreshing).toBe(false);
+  });
+
+  // Without this the app is stuck: a server that is down at launch leaves a
+  // screen with nothing to press.
+  it('retries after a failure', async () => {
+    let calls = 0;
+    await renderScreenReadingFrom({
+      list: async () => {
+        calls += 1;
+
+        if (calls === 1) {
+          throw new Error('The document server answered with status 500');
+        }
+
+        return [aDocument({ title: 'Back online' })];
+      },
+    });
+    await screen.findByText('Could not load the documents');
+
+    await fireEvent.press(screen.getByLabelText('Try again'));
+
+    expect(await screen.findByText('Back online')).toBeTruthy();
+  });
+
+  // Creating a document reloads the list too, and the pull indicator there
+  // would look like the app went to the server for something the user did
+  // locally.
+  it('leaves the pull indicator alone when a document is created', async () => {
+    // The reload that follows a creation is left hanging, so the indicator is
+    // observed while it would be spinning rather than after it settled.
+    let releaseReload = () => {};
+    let calls = 0;
+    await renderScreen({
+      list: async () => {
+        calls += 1;
+
+        if (calls > 1) {
+          await new Promise<void>((resolve) => {
+            releaseReload = resolve;
+          });
+        }
+
+        return [aDocument({ title: 'Ten FIDY' })];
+      },
+    });
+    await screen.findByText('Ten FIDY');
+
+    await fireEvent.press(screen.getByLabelText('Add document'));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Notes');
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Submit'));
+    });
+
+    expect(refreshControl().props.refreshing).toBe(false);
+
+    await act(async () => releaseReload());
+  });
+});
+
+describe('DocumentListScreen partial readings', () => {
+  const unreachable = {
+    list: async () => {
+      throw new Error('The document server did not answer within 10000ms');
+    },
+  };
+
+  // The local store keeps answering when the server does not, so without this
+  // the screen would claim there is nothing rather than admit it could not ask.
+  it('admits it could not reach the server instead of showing an empty list', async () => {
+    await renderScreen(unreachable);
+
+    expect(await screen.findByText('Could not reach the server')).toBeTruthy();
+    expect(screen.queryByText('There are no documents yet')).toBeNull();
+  });
+
+  it('keeps showing the documents it does have', async () => {
+    const store = createInMemoryDocumentStore();
+    await store.add(aDocument({ title: 'Kitchen notes' }));
+
+    await renderWithProviders(
+      testDependencies({
+        store,
+        reader: createCompositeDocumentRepository([unreachable, store]),
+      }),
+    );
+
+    expect(await screen.findByText('Kitchen notes')).toBeTruthy();
+    expect(screen.getByText('Could not reach the server')).toBeTruthy();
+  });
+
+  it('says nothing when every source answered', async () => {
+    await renderScreen({ list: async () => [aDocument({ title: 'Ten FIDY' })] });
+    await screen.findByText('Ten FIDY');
+
+    expect(screen.queryByText('Could not reach the server')).toBeNull();
+  });
+
+  it('drops the warning once the server answers again', async () => {
+    let calls = 0;
+    await renderScreen({
+      list: async () => {
+        calls += 1;
+
+        if (calls === 1) {
+          throw new Error('The document server did not answer within 10000ms');
+        }
+
+        return [aDocument({ title: 'Back online' })];
+      },
+    });
+    await screen.findByText('Could not reach the server');
+
+    await fireEvent.press(screen.getByLabelText('Try again'));
+
+    expect(await screen.findByText('Back online')).toBeTruthy();
+    expect(screen.queryByText('Could not reach the server')).toBeNull();
   });
 });

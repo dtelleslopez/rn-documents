@@ -1,10 +1,16 @@
-import { Document } from '../domain/document';
-import { sortDocuments } from '../domain/documentOrder';
-import { DocumentRepository } from '../domain/documentRepository';
+import {
+  DEFAULT_DOCUMENT_ORDER,
+  sortDocuments,
+} from '../domain/documentOrder';
+import { DocumentsReader, DocumentsReading } from '../domain/documentsReader';
 
-// The order the list opens with; from there the user picks.
 export async function listDocuments(
-  repository: DocumentRepository,
-): Promise<Document[]> {
-  return sortDocuments(await repository.list(), 'newest');
+  reader: DocumentsReader,
+): Promise<DocumentsReading> {
+  const { documents, incomplete } = await reader.read();
+
+  return {
+    documents: sortDocuments(documents, DEFAULT_DOCUMENT_ORDER),
+    incomplete,
+  };
 }

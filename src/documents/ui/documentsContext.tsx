@@ -1,10 +1,10 @@
 import React, { createContext, ReactNode, useContext } from 'react';
 
-import { DocumentRepository } from '../domain/documentRepository';
+import { DocumentsReader } from '../domain/documentsReader';
 import { DocumentStore } from '../domain/documentStore';
 
 export interface DocumentsDependencies {
-  repository: DocumentRepository;
+  reader: DocumentsReader;
   store: DocumentStore;
   newId: () => string;
   now: () => Date;

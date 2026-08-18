@@ -6,16 +6,16 @@ import { useDocumentsDependencies } from './documentsContext';
 
 export type DocumentsState =
   | { status: 'loading' }
-  | { status: 'ready'; documents: Document[] }
+  | { status: 'ready'; documents: Document[]; incomplete: boolean }
   | { status: 'failed'; message: string };
 
 interface UseDocumentsResult {
   state: DocumentsState;
-  refresh: () => void;
+  refresh: () => Promise<void>;
 }
 
 export function useDocuments(): UseDocumentsResult {
-  const { repository } = useDocumentsDependencies();
+  const { reader } = useDocumentsDependencies();
   const [state, setState] = useState<DocumentsState>({ status: 'loading' });
 
   // The server sends a fresh random collection every time, so a slow first load
@@ -27,17 +27,17 @@ export function useDocuments(): UseDocumentsResult {
     latestRequest.current = request;
 
     try {
-      const documents = await listDocuments(repository);
+      const { documents, incomplete } = await listDocuments(reader);
 
       if (latestRequest.current === request) {
-        setState({ status: 'ready', documents });
+        setState({ status: 'ready', documents, incomplete });
       }
     } catch (error) {
       if (latestRequest.current === request) {
         setState({ status: 'failed', message: messageOf(error) });
       }
     }
-  }, [repository]);
+  }, [reader]);
 
   useEffect(() => {
     // The state updates happen after awaiting the repository, never during

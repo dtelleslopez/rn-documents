@@ -1,3 +1,4 @@
+import { createCompositeDocumentRepository } from '../infrastructure/compositeDocumentRepository';
 import { createInMemoryDocumentStore } from '../infrastructure/inMemoryDocumentStore';
 import { DocumentsDependencies } from '../ui/documentsContext';
 
@@ -7,7 +8,7 @@ export function testDependencies(
   const store = createInMemoryDocumentStore();
 
   return {
-    repository: store,
+    reader: createCompositeDocumentRepository([store]),
     store,
     newId: () => 'generated-id',
     now: () => new Date('2026-08-17T10:00:00Z'),

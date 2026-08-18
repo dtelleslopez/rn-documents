@@ -1,18 +1,20 @@
 import { Document } from '../domain/document';
 import { DocumentRepository } from '../domain/documentRepository';
+import { DocumentsReader, DocumentsReading } from '../domain/documentsReader';
 
 /**
  * A source that fails does not sink the others: losing the server should not
- * hide the documents the user created locally. Only a total failure is
- * reported, and every partial one is logged rather than swallowed.
+ * hide the documents the user created locally. The caller is told that the
+ * reading is incomplete so it can say so instead of showing a convincing empty
+ * screen. Only a total failure is reported as one.
  *
  * Ordering is left to the caller, since `listDocuments` already owns that rule.
  */
 export function createCompositeDocumentRepository(
   sources: DocumentRepository[],
-): DocumentRepository {
+): DocumentsReader {
   return {
-    async list(): Promise<Document[]> {
+    async read(): Promise<DocumentsReading> {
       const results = await Promise.allSettled(
         sources.map((source) => source.list()),
       );
@@ -23,13 +25,10 @@ export function createCompositeDocumentRepository(
         throw failures[0].reason;
       }
 
-      failures.forEach((failure) => {
-        console.warn(
-          `Could not read documents from one source: ${messageOf(failure.reason)}`,
-        );
-      });
-
-      return results.filter(isFulfilled).flatMap((result) => result.value);
+      return {
+        documents: results.filter(isFulfilled).flatMap((result) => result.value),
+        incomplete: failures.length > 0,
+      };
     },
   };
 }
@@ -44,8 +43,4 @@ function isRejected(
   result: PromiseSettledResult<Document[]>,
 ): result is PromiseRejectedResult {
   return result.status === 'rejected';
-}
-
-function messageOf(reason: unknown): string {
-  return reason instanceof Error ? reason.message : String(reason);
 }

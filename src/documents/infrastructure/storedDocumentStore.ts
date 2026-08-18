@@ -19,7 +19,12 @@ export function createStoredDocumentStore(storage: TextStorage): DocumentStore {
   let lastAdd: Promise<void> = Promise.resolve();
 
   function documents(): Promise<Document[]> {
-    loading ??= load(storage);
+    loading ??= load(storage).catch((error) => {
+      // A failed read is forgotten so that the next call asks the disk again,
+      // instead of replaying this failure until the app restarts.
+      loading = null;
+      throw error;
+    });
 
     return loading;
   }
@@ -56,7 +61,16 @@ async function load(storage: TextStorage): Promise<Document[]> {
     return [];
   }
 
-  const { documents, discarded } = parseDocuments(readJson(text));
+  const payload = readJson(text);
+
+  if (!Array.isArray(payload)) {
+    // Broken beyond entry-by-entry repair. Starting empty is the tolerance;
+    // doing it silently would not be.
+    console.warn('The stored documents could not be read; starting empty');
+    return [];
+  }
+
+  const { documents, discarded } = parseDocuments(payload);
 
   if (discarded > 0) {
     console.warn(`Discarded ${discarded} unreadable stored document(s)`);

@@ -105,10 +105,15 @@ describe('createStoredDocumentStore', () => {
     expect(await createStoredDocumentStore(storage).list()).toEqual([readable]);
   });
 
-  it('starts empty when the stored text is not JSON at all', async () => {
+  it('warns and starts empty when the stored text is not JSON at all', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const { storage } = storageHolding('this is not json');
 
     expect(await createStoredDocumentStore(storage).list()).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      'The stored documents could not be read; starting empty',
+    );
+    warn.mockRestore();
   });
 
   it('loses neither of two documents added at the same time', async () => {
@@ -124,6 +129,27 @@ describe('createStoredDocumentStore', () => {
     expect((await nextRun.list()).map((document) => document.id)).toEqual([
       'first',
       'second',
+    ]);
+  });
+
+  it('asks the disk again after a read that failed', async () => {
+    let attempts = 0;
+    const storage: TextStorage = {
+      read: async () => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new Error('the disk went away');
+        }
+        return serializeDocuments([aDocument({ id: 'recovered' })]);
+      },
+      write: async () => {},
+    };
+    const store = createStoredDocumentStore(storage);
+
+    await expect(store.list()).rejects.toThrow('the disk went away');
+
+    expect((await store.list()).map((document) => document.id)).toEqual([
+      'recovered',
     ]);
   });
 

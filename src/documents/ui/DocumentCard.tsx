@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Document } from '../domain/document';
+import { relativeTime } from './relativeTime';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -16,10 +17,15 @@ export type DocumentCardLayout = 'list' | 'grid';
 
 interface DocumentCardProps {
   document: Document;
+  now: Date;
   layout?: DocumentCardLayout;
 }
 
-export function DocumentCard({ document, layout = 'list' }: DocumentCardProps) {
+export function DocumentCard({
+  document,
+  now,
+  layout = 'list',
+}: DocumentCardProps) {
   const everySection: Section[] = [
     {
       icon: 'people-outline',
@@ -59,6 +65,8 @@ export function DocumentCard({ document, layout = 'list' }: DocumentCardProps) {
           ))}
         </View>
       )}
+
+      <Text style={styles.age}>{relativeTime(document.createdAt, now)}</Text>
     </View>
   );
 }
@@ -135,5 +143,9 @@ const styles = StyleSheet.create({
   item: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  age: {
+    fontSize: 13,
+    color: '#9aa0a6',
   },
 });

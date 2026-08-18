@@ -10,7 +10,8 @@ there is nothing to compile: install the dependencies, point it at the server an
 
 - **Lists the documents** exposed by `GET /documents`, newest first, with a loading state, an
   empty state and an error state that says what went wrong. They can be reordered by name or by
-  creation date, and shown either as a list or two-up as a grid.
+  creation date, and shown either as a list or two-up as a grid. Each card says how long ago it
+  was created.
 - **Goes back for more**: pull the list down to reload it. When the server cannot be reached, the
   screen says so above the documents it does have — rather than claiming there are none — and
   offers a retry.
@@ -55,7 +56,7 @@ restart the bundler, Fast Refresh will not pick it up.
 ## Checks
 
 ```bash
-npm test          # 136 tests, 26 suites (Jest + jest-expo + React Native Testing Library)
+npm test          # 145 tests, 27 suites (Jest + jest-expo + React Native Testing Library)
 npm run typecheck # tsc --noEmit
 npm run lint      # expo lint
 ```
@@ -157,6 +158,11 @@ closes the socket, and reopening happens on its own when the app comes back.
   still leaves the JSON to us, so it buys a few lines. `expo-file-system` is the same family as
   the Expo modules already in use, and what it does not give us — the stored shape, and the
   tolerance for a half-written file — is exactly the part worth writing and testing ourselves.
+- **Relative dates written by hand, not with a library.** `Intl.RelativeTimeFormat` would have
+  been free, but this Hermes build ships `Intl.Collator` and not that one — checked on the device
+  rather than assumed. Of the libraries, `timeago.js` is the small one; what it solves, though, is
+  locales and CLDR plural rules, and this app is in English only. Picking a unit and pluralising
+  it is twenty lines and a test per boundary, so the dependency would buy nothing.
 - **The stored file uses the shape the server answers with**, so `parseDocuments` reads both and
   there is one definition of what makes a document readable, rather than two to keep in step.
 - **No tactical DDD.** There is not a single invariant to protect: a document is an immutable bag

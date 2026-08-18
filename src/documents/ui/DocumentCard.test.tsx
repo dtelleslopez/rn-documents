@@ -4,10 +4,15 @@ import React from 'react';
 import { aDocument } from '../testing/documentBuilder';
 import { DocumentCard } from './DocumentCard';
 
+const NOW = new Date('2026-08-18T12:00:00Z');
+
 describe('DocumentCard', () => {
   it('names the document and the version it is at', async () => {
     await render(
-      <DocumentCard document={aDocument({ title: 'Hop Rod Rye', version: '2.6.16' })} />,
+      <DocumentCard
+        now={NOW}
+        document={aDocument({ title: 'Hop Rod Rye', version: '2.6.16' })}
+      />,
     );
 
     expect(screen.getByLabelText('Document title')).toHaveTextContent('Hop Rod Rye');
@@ -17,14 +22,38 @@ describe('DocumentCard', () => {
   // The form lets a document through without a version, and a bare "Version"
   // label with nothing after it reads as a bug.
   it('says nothing about the version when there is none', async () => {
-    await render(<DocumentCard document={aDocument({ version: '' })} />);
+    await render(<DocumentCard now={NOW} document={aDocument({ version: '' })} />);
 
     expect(screen.queryByText(/Version/)).toBeNull();
+  });
+
+  it('says how long ago it was created', async () => {
+    await render(
+      <DocumentCard
+        now={NOW}
+        document={aDocument({ createdAt: new Date('2026-08-18T09:00:00Z') })}
+      />,
+    );
+
+    expect(screen.getByText('3 hours ago')).toBeTruthy();
+  });
+
+  it('says it side by side too, so a document reads the same either way', async () => {
+    await render(
+      <DocumentCard
+        now={NOW}
+        layout="grid"
+        document={aDocument({ createdAt: new Date('2026-08-18T09:00:00Z') })}
+      />,
+    );
+
+    expect(screen.getByText('3 hours ago')).toBeTruthy();
   });
 
   it('lists who contributed and what is attached', async () => {
     await render(
       <DocumentCard
+        now={NOW}
         document={aDocument({
           contributors: [
             { id: 'first', name: 'Carlie Abott' },
@@ -49,6 +78,7 @@ describe('DocumentCard', () => {
   it('leaves out the sections nobody filled in', async () => {
     await render(
       <DocumentCard
+        now={NOW}
         document={aDocument({ contributors: [], attachments: ['Stout'] })}
       />,
     );
@@ -62,6 +92,7 @@ describe('DocumentCard', () => {
   it('keeps only the name and the version when laid out side by side', async () => {
     await render(
       <DocumentCard
+        now={NOW}
         layout="grid"
         document={aDocument({
           title: 'Stone IPA',
@@ -82,6 +113,7 @@ describe('DocumentCard', () => {
   it('shows nothing but the title for a document just created', async () => {
     await render(
       <DocumentCard
+        now={NOW}
         document={aDocument({
           title: 'Notes',
           contributors: [],

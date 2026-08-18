@@ -28,7 +28,7 @@ import { useDocuments } from './useDocuments';
 export function DocumentListScreen() {
   const { state, refresh } = useDocuments();
   const { create } = useCreateDocument();
-  const { pickFile } = useDocumentsDependencies();
+  const { pickFile, now } = useDocumentsDependencies();
   const { count, acknowledge } = useUnseenNotifications();
   const [adding, setAdding] = useState(false);
   const [sorting, setSorting] = useState(false);
@@ -83,6 +83,7 @@ export function DocumentListScreen() {
         <Documents
           state={ordered}
           layout={layout}
+          now={now}
           refreshing={refreshing}
           onRefresh={pull}
         />
@@ -119,11 +120,18 @@ export function DocumentListScreen() {
 interface DocumentsProps {
   state: ReturnType<typeof useDocuments>['state'];
   layout: DocumentCardLayout;
+  now: () => Date;
   refreshing: boolean;
   onRefresh: () => void;
 }
 
-function Documents({ state, layout, refreshing, onRefresh }: DocumentsProps) {
+function Documents({
+  state,
+  layout,
+  now,
+  refreshing,
+  onRefresh,
+}: DocumentsProps) {
   if (state.status === 'loading') {
     return (
       <Centered>
@@ -180,7 +188,7 @@ function Documents({ state, layout, refreshing, onRefresh }: DocumentsProps) {
         }
         keyExtractor={(document) => document.id}
         renderItem={({ item }) => (
-          <DocumentCard document={item} layout={layout} />
+          <DocumentCard document={item} layout={layout} now={now()} />
         )}
         numColumns={grid ? 2 : 1}
         columnWrapperStyle={grid ? styles.gridRow : undefined}

@@ -107,6 +107,44 @@ describe('createHttpDocumentRepository', () => {
     jest.useRealTimers();
   });
 
+  it('gives up when the body stalls after the headers arrived', async () => {
+    jest.useFakeTimers();
+    // Headers land at once, but the body never finishes arriving.
+    const stallingServer = jest.fn((_url: string, init?: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((_resolve, reject) => {
+            const abort = () => reject(new Error('Aborted'));
+
+            // Like fetch: reading a body whose signal is already aborted
+            // rejects at once instead of waiting for an event that fired.
+            if (init?.signal?.aborted) {
+              abort();
+            } else {
+              init?.signal?.addEventListener('abort', abort);
+            }
+          }),
+      } as unknown as Response),
+    );
+    const repository = createHttpDocumentRepository({
+      baseUrl: 'http://example.test:8080',
+      fetch: stallingServer as unknown as typeof globalThis.fetch,
+      timeoutMs: 5000,
+    });
+
+    const documents = repository.list();
+    // Let the headers land and the body read begin, then run the clock out.
+    await jest.advanceTimersByTimeAsync(0);
+    jest.advanceTimersByTime(5000);
+
+    await expect(documents).rejects.toThrow(
+      'The document server did not answer within 5000ms',
+    );
+    jest.useRealTimers();
+  });
+
   it('stops counting down once the server has answered', async () => {
     jest.useFakeTimers();
     const repository = createHttpDocumentRepository({

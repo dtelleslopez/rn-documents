@@ -17,19 +17,11 @@ export function createHttpDocumentRepository({
 }: HttpDocumentRepositoryConfig): DocumentRepository {
   return {
     async list(): Promise<Document[]> {
-      const response = await fetchWithin(
+      const payload = await requestJsonWithin(
         timeoutMs,
         fetch,
         `${baseUrl}/documents`,
       );
-
-      if (!response.ok) {
-        throw new Error(
-          `The document server answered with status ${response.status}`,
-        );
-      }
-
-      const payload = await readJson(response);
 
       if (!Array.isArray(payload)) {
         // Reading it as an empty list would put a convincing "no documents
@@ -52,16 +44,26 @@ export function createHttpDocumentRepository({
   };
 }
 
-async function fetchWithin(
+// The countdown covers the whole exchange: a body that stalls after the
+// headers arrived is as much a silent server as one that never answered.
+async function requestJsonWithin(
   timeoutMs: number,
   fetch: typeof globalThis.fetch,
   url: string,
-): Promise<Response> {
+): Promise<unknown> {
   const controller = new AbortController();
   const countdown = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { signal: controller.signal });
+
+    if (!response.ok) {
+      throw new Error(
+        `The document server answered with status ${response.status}`,
+      );
+    }
+
+    return await readJson(response);
   } catch (error) {
     // Any failure after our own abort is that abort, not a network problem.
     if (controller.signal.aborted) {

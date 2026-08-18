@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useState } from 'react';
 import {
   Modal,
@@ -93,6 +94,7 @@ export function AddDocumentSheet({
               onPress={choose}
               style={styles.chooseFile}
             >
+              <Ionicons name="document-text-outline" size={18} color="#3b6df6" />
               <Text style={styles.chooseFileText}>Choose file</Text>
             </Pressable>
 
@@ -207,6 +209,9 @@ const styles = StyleSheet.create({
     color: '#1f2933',
   },
   chooseFile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     alignSelf: 'flex-start',
     borderWidth: 1,
     borderColor: '#dfe3e8',

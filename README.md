@@ -75,10 +75,10 @@ The code is organised **by feature, and inside each feature by layer**:
 src/
 ├── composition.ts              # composition root: the only place that knows the real world
 ├── documents/
-│   ├── domain/                 # Document, DocumentRepository, DocumentStore
+│   ├── domain/                 # Document, its ports, its ordering
 │   ├── application/            # createDocument
-│   ├── infrastructure/         # HTTP, in-memory and composite adapters, parsing
-│   ├── ui/                     # screen, sheet, context, hooks
+│   ├── infrastructure/         # HTTP, disk, composite, share, picker, parsing
+│   ├── ui/                     # screen, cards, sheets, context, hooks
 │   └── testing/                # builders and test doubles
 └── notifications/              # same shape: domain, application-less, infrastructure, ui
 ```

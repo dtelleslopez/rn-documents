@@ -20,6 +20,15 @@ describe('newDocument', () => {
     });
   });
 
+  it('trims the version the user typed', () => {
+    const document = newDocument(
+      { title: 'Padded', version: '  1.0.0  ', attachments: [] },
+      { id: 'generated-id', createdAt },
+    );
+
+    expect(document.version).toBe('1.0.0');
+  });
+
   it('trims the title the user typed', () => {
     const document = newDocument(
       { title: '  Padded  ', version: '', attachments: [] },

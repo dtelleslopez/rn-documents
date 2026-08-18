@@ -42,7 +42,7 @@ export function newDocument(
   return {
     id,
     title,
-    version: draft.version,
+    version: draft.version.trim(),
     attachments: draft.attachments,
     createdAt,
     updatedAt: createdAt,

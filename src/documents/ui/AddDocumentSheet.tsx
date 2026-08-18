@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -29,8 +29,13 @@ export function AddDocumentSheet({
   const [version, setVersion] = useState('');
   const [attachments, setAttachments] = useState<string[]>([]);
   const [failed, setFailed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = title.trim().length > 0;
+  // The ref, not the disabled button, is what prevents a double submit: two
+  // taps can land in the same frame, before React repaints the button.
+  const submitInFlight = useRef(false);
+
+  const canSubmit = title.trim().length > 0 && !submitting;
 
   function reset() {
     setTitle('');
@@ -46,11 +51,22 @@ export function AddDocumentSheet({
 
   // Kept on failure: clearing would throw away work the app could not store.
   async function submit() {
+    if (submitInFlight.current) {
+      return;
+    }
+
+    submitInFlight.current = true;
+    setSubmitting(true);
+    setFailed(false);
+
     try {
       await onSubmit({ title, version, attachments });
       reset();
     } catch {
       setFailed(true);
+    } finally {
+      submitInFlight.current = false;
+      setSubmitting(false);
     }
   }
 

@@ -86,6 +86,28 @@ describe('AddDocumentSheet', () => {
     );
   });
 
+  it('refuses a second submit while the first is still being saved', async () => {
+    let resolveSubmit!: () => void;
+    const onSubmit = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSubmit = resolve;
+        }),
+    );
+    await renderSheet({ onSubmit });
+
+    await type('Name', 'Quarterly report');
+    // Both taps in the same frame, before the button repaints as disabled.
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Submit'));
+      fireEvent.press(screen.getByLabelText('Submit'));
+    });
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+
+    await act(async () => resolveSubmit());
+  });
+
   it('closes when the user dismisses it', async () => {
     const onDismiss = jest.fn();
     await renderSheet({ onDismiss });

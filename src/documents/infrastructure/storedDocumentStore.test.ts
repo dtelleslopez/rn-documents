@@ -111,6 +111,22 @@ describe('createStoredDocumentStore', () => {
     expect(await createStoredDocumentStore(storage).list()).toEqual([]);
   });
 
+  it('loses neither of two documents added at the same time', async () => {
+    const disk = storageHolding();
+    const store = createStoredDocumentStore(disk.storage);
+
+    await Promise.all([
+      store.add(aDocument({ id: 'first' })),
+      store.add(aDocument({ id: 'second' })),
+    ]);
+
+    const nextRun = createStoredDocumentStore(storageHolding(disk.stored).storage);
+    expect((await nextRun.list()).map((document) => document.id)).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+
   // Remembering a document that was never written would promise the user a
   // permanence the app cannot deliver.
   it('refuses to remember what it could not write', async () => {

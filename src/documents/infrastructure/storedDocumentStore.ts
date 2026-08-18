@@ -14,6 +14,10 @@ export function createStoredDocumentStore(storage: TextStorage): DocumentStore {
   // our back.
   let loading: Promise<Document[]> | null = null;
 
+  // Adds run one at a time: two overlapping ones would start from the same
+  // list, and the later write would erase the earlier document.
+  let lastAdd: Promise<void> = Promise.resolve();
+
   function documents(): Promise<Document[]> {
     loading ??= load(storage);
 
@@ -21,15 +25,22 @@ export function createStoredDocumentStore(storage: TextStorage): DocumentStore {
   }
 
   return {
-    async add(document: Document): Promise<void> {
-      const kept = await documents();
-      const withDocument = [...kept, document];
+    add(document: Document): Promise<void> {
+      const adding = lastAdd.then(async () => {
+        const kept = await documents();
+        const withDocument = [...kept, document];
 
-      // Written before it is remembered: a document kept in memory but never
-      // stored would promise a permanence the app cannot deliver.
-      await storage.write(serializeDocuments(withDocument));
+        // Written before it is remembered: a document kept in memory but never
+        // stored would promise a permanence the app cannot deliver.
+        await storage.write(serializeDocuments(withDocument));
 
-      loading = Promise.resolve(withDocument);
+        loading = Promise.resolve(withDocument);
+      });
+
+      // The next add must wait for this one, not inherit its failure.
+      lastAdd = adding.catch(() => {});
+
+      return adding;
     },
 
     async list(): Promise<Document[]> {

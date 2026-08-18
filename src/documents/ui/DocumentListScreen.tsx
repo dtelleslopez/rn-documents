@@ -11,7 +11,7 @@ import {
 
 import { NotificationBell } from '../../notifications/ui/NotificationBell';
 import { useUnseenNotifications } from '../../notifications/ui/useUnseenNotifications';
-import { DocumentDraft } from '../domain/document';
+import { Document, DocumentDraft } from '../domain/document';
 import {
   DEFAULT_DOCUMENT_ORDER,
   DocumentOrder,
@@ -117,6 +117,16 @@ export function DocumentListScreen() {
   );
 }
 
+// With two columns, a document alone on the last row would stretch across
+// both, so the grid is padded to an even number of cells.
+const GRID_FILLER = { id: 'grid-filler' } as const;
+
+type Cell = Document | typeof GRID_FILLER;
+
+function isFiller(cell: Cell): cell is typeof GRID_FILLER {
+  return cell === GRID_FILLER;
+}
+
 interface DocumentsProps {
   state: DocumentsState;
   layout: DocumentCardLayout;
@@ -172,6 +182,10 @@ function Documents({
   }
 
   const grid = layout === 'grid';
+  const cells: Cell[] =
+    grid && state.documents.length % 2 === 1
+      ? [...state.documents, GRID_FILLER]
+      : state.documents;
 
   return (
     <>
@@ -182,14 +196,18 @@ function Documents({
         // the list is remounted when the layout does.
         key={layout}
         accessibilityLabel="Documents list"
-        data={state.documents}
+        data={cells}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        keyExtractor={(document) => document.id}
-        renderItem={({ item }) => (
-          <DocumentCard document={item} layout={layout} now={now()} />
-        )}
+        keyExtractor={(cell) => cell.id}
+        renderItem={({ item }) =>
+          isFiller(item) ? (
+            <View style={styles.gridFiller} testID="grid-filler" />
+          ) : (
+            <DocumentCard document={item} layout={layout} now={now()} />
+          )
+        }
         numColumns={grid ? 2 : 1}
         columnWrapperStyle={grid ? styles.gridRow : undefined}
         contentContainerStyle={styles.list}
@@ -256,6 +274,9 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     gap: 12,
+  },
+  gridFiller: {
+    flex: 1,
   },
   headline: {
     fontSize: 16,

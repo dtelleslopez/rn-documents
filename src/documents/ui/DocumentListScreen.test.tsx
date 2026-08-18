@@ -262,6 +262,24 @@ describe('DocumentListScreen sorting and layout', () => {
     expect(screen.getByLabelText('Show as grid')).toBeTruthy();
   });
 
+  it('pads a lone document with a filler so it keeps column width', async () => {
+    await renderScreen({ list: async () => [aDocument({ title: 'Stone IPA' })] });
+    await screen.findByText('Stone IPA');
+
+    await fireEvent.press(screen.getByLabelText('Show as grid'));
+
+    expect(screen.getByTestId('grid-filler')).toBeTruthy();
+  });
+
+  it('needs no filler when the documents pair up', async () => {
+    await renderScreen({ list: async () => alphabet });
+    await screen.findByText('Stone IPA');
+
+    await fireEvent.press(screen.getByLabelText('Show as grid'));
+
+    expect(screen.queryByTestId('grid-filler')).toBeNull();
+  });
+
   it('drops the details when the documents go side by side', async () => {
     await renderScreen({
       list: async () => [

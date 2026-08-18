@@ -10,8 +10,9 @@ import {
 
 import { NotificationBell } from '../../notifications/ui/NotificationBell';
 import { useUnseenNotifications } from '../../notifications/ui/useUnseenNotifications';
-import { Document, DocumentDraft } from '../domain/document';
+import { DocumentDraft } from '../domain/document';
 import { AddDocumentSheet } from './AddDocumentSheet';
+import { DocumentCard } from './DocumentCard';
 import { useDocumentsDependencies } from './documentsContext';
 import { useCreateDocument } from './useCreateDocument';
 import { useDocuments } from './useDocuments';
@@ -91,22 +92,9 @@ function Documents({ state }: { state: ReturnType<typeof useDocuments>['state'] 
     <FlatList
       data={state.documents}
       keyExtractor={(document) => document.id}
-      renderItem={({ item }) => <DocumentRow document={item} />}
+      renderItem={({ item }) => <DocumentCard document={item} />}
       contentContainerStyle={styles.list}
     />
-  );
-}
-
-function DocumentRow({ document }: { document: Document }) {
-  return (
-    <View style={styles.row}>
-      <Text accessibilityLabel="Document title" style={styles.title}>
-        {document.title}
-      </Text>
-      <Text style={styles.createdAt}>
-        {document.createdAt.toLocaleDateString()}
-      </Text>
-    </View>
   );
 }
 
@@ -120,6 +108,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    backgroundColor: '#f4f5f7',
   },
   header: {
     flexDirection: 'row',
@@ -143,21 +132,10 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  row: {
-    gap: 4,
-  },
   headline: {
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  createdAt: {
-    fontSize: 13,
-    color: '#666',
   },
   reason: {
     fontSize: 13,
